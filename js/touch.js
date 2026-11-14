@@ -263,7 +263,31 @@
         draw();
         make(extra, 'Rolle ◀', 'KeyQ', 'small'); make(extra, 'Rolle ▶', 'KeyE', 'small');
         make(extra, 'Fahrwerk', 'KeyG', 'small cyan', TAP);
+        make(extra, 'Klappen', 'KeyF', 'small cyan', TAP);
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
+      } else if (kind === 'heli') {
+        make(right, 'RAKETE', 'KeyR', 'wide bomb');
+        // Tippen oder Halten irgendwo auf dem freien Bildschirm feuert die Bordkanone, nach oben wischen schießt Raketen
+        const area = FL.el('div', 'tswipe', '');
+        L.insertBefore(area, L.firstChild);
+        let sw = null;
+        const fireOff = () => { if (sw && sw.fire) { sw.fire = false; release('Space'); } };
+        area.addEventListener('pointerdown', e => { if (sw) return; const me = sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, done: false, fire: false, moved: 0 }; setTimeout(() => { if (sw === me && me.moved < 20 && !me.done) { me.fire = true; press('Space'); } }, 110); });
+        area.addEventListener('pointermove', e => {
+          if (!sw || e.pointerId !== sw.id || sw.done) return;
+          const dy = e.clientY - sw.y0, dx = e.clientX - sw.x0;
+          sw.moved = Math.max(sw.moved, Math.hypot(dx, dy));
+          if (dy < -55 && -dy > Math.abs(dx) * 1.2) { fireOff(); sw.done = true; press('KeyR'); setTimeout(() => release('KeyR'), 220); if (navigator.vibrate) navigator.vibrate(10); }
+        });
+        const endW = e => {
+          if (!sw || e.pointerId !== sw.id) return;
+          if (sw.fire) fireOff(); else if (!sw.done && sw.moved < 20) { press('Space'); setTimeout(() => release('Space'), 260); }
+          sw = null;
+        };
+        area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
+        T.endSwipe = () => { fireOff(); sw = null; };
+        make(extra, '◀ Seite', 'KeyA', 'small'); make(extra, 'Seite ▶', 'KeyD', 'small');
+        make(extra, '▲<br>Hoch', 'KeyW', 'small cyan'); make(extra, '▼<br>Runter', 'KeyS', 'small cyan');
       } else {
         // Freier Bildschirm: tippen = Schuss, links/rechts wischen dreht den Turm, hoch/runter wischen hebt oder senkt die Kanone
         const area = FL.el('div', 'tswipe', '');

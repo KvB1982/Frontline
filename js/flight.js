@@ -128,7 +128,7 @@
         taxi: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum blauen Kreis auf der Startbahn',
         lineup: 'Das Flugzeug richtet sich aus …',
         takeoff: '↑ halten = Vollgas · Umschalt = Nachbrenner · bei genug Tempo ↓ ziehen = abheben',
-        flight: 'Steuerknüppel: ← → Schräglage und Kurve · Q E Rolle · ↓ ziehen = Nase hoch (halten = Looping) · ↑ = Nase runter · Leertaste oder Mausklick Bordkanone · B Bombe' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · Umschalt Nachbrenner',
+        flight: 'Steuerknüppel: ← → Schräglage und Kurve · Q E Rolle · ↓ ziehen = Nase hoch (halten = Looping) · ↑ = Nase runter · Leertaste oder Mausklick Bordkanone · B Bombe' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · F Landeklappen · Umschalt Nachbrenner',
         landing: 'Aufgesetzt: Das Flugzeug bremst und rollt aus',
         taxiback: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum Parkplatz (blauer Kreis)',
         parked: 'Motor aus …',
@@ -152,7 +152,7 @@
       const rnd = FL.seeded(71 + Math.round(tier * 10) + th.length * 3 + (sc.seed || 0) + (fixed ? 0 : Math.floor(Math.random() * 5000)));
       const sa = fixed ? 0.27 : (Math.random() * 2 - 1) * 2.1, sd = fixed ? 955 : 1500 + Math.random() * 1100;
       const OX = Math.round(BASE_C.x + Math.sin(sa) * sd), OZ = Math.round(BASE_C.z + Math.cos(sa) * sd) - 30;
-      const biome = sc.ships ? 'meer' : this.cfg.biome || Object.keys(BIOMES)[Math.floor(R0 * 4) % 4];
+      const biome = sc.ships ? 'meer' : sc.biome || this.cfg.biome || Object.keys(BIOMES)[Math.floor(R0 * 4) % 4];
       this.site = { x: OX, z: OZ + 30, a: sa, d: sd, biome };
       this.mid = { x: (BASE_C.x + OX) / 2, z: (BASE_C.z + OZ) / 2 }; this.midR = sd / 2 + 1150;
       if (this.timeLeft > 0) this.timeLeft += Math.round(sd / 55);
@@ -223,6 +223,18 @@
         }
       }
       this.sinking = [];
+      // Bodenkampf: Eigene Truppen greifen die Basis an, davor stehen Soldaten, Panzer und Fahrzeuge des Gegners
+      if (sc.support) {
+        const SC = 1.8;
+        this.fight = new FL.GroundFight({ stage: st, fx: this.fx, theme: th, cx: OX, cz: OZ + 30, a: this.site.a + Math.PI, front: R + 70, back: R + 330, scale: SC, rnd,
+          foes: sc.support.foes, own: sc.support.own, hpMul: (1 + 0.2 * tier) * (1 + 0.5 * this.pw), last: (sc.support.last || 170) * (0.85 / this.diff),
+          onDead: (u, mine) => this.unitDead(u, mine) });
+        for (const u of this.fight.foes) {
+          u.primary = true;
+          u.marker = FL.sprite(FL.tex.icon('target'), 10, { depthTest: false, fog: false }); u.marker.position.set(u.x, u.h + 8, u.z); st.add(u.marker);
+          this.structures.push(u);
+        }
+      }
       this.buildBase(th);
       this.flak = this.structures.filter(s => s.kind === 'flak' || s.ship);
       this.nPrimary = this.goal === 'jets' ? sc.jets.need : this.structures.filter(s => s.primary).length;
@@ -342,13 +354,25 @@
       const n = this.left();
       if (n === 0) {
         this.rtb = true; FL.audio.play('up');
-        FL.hud.msg(this.goal === 'jets' ? 'ALLE JÄGER ABGESCHOSSEN!' : 'ALLE ZIELE ZERSTÖRT!', C.gold); FL.hud.msg('Flieg zurück zur Basis und lande selbst', C.cyan, true);
+        FL.hud.msg(this.goal === 'jets' ? 'ALLE JÄGER ABGESCHOSSEN!' : this.fight ? 'BASIS EINGENOMMEN!' : 'ALLE ZIELE ZERSTÖRT!', C.gold); FL.hud.msg('Flieg zurück zur Basis und lande selbst', C.cyan, true);
         for (const m of this.apMarks) m.visible = true;
       }
       else FL.hud.msg(word + ' Noch ' + n, C.orange, true);
     }
+    // ein Trupp oder Fahrzeug im Bodenkampf ist ausgefallen
+    unitDead(u, mine) {
+      if (u.team === 'own') {
+        if (!this.fight.own.some(o => o.alive) && !this.rtb && !this.lost && this.endT < 0) { this.lost = true; this.endT = 2.4; FL.hud.msg('Unsere Bodentruppen mussten sich zurückziehen!', C.red); }
+        else if (!this.rtb) FL.hud.msg('Unsere Truppen brauchen Hilfe!', C.orange, true);
+        return;
+      }
+      if (u.kind !== 'squad') this.burning.push({ x: u.x, z: u.z, t: 12, size: 5 });
+      this.kills++; if (mine) this.coins += u.kind === 'tank' ? 14 : u.kind === 'jeep' ? 9 : 7;
+      this.scored(u.kind === 'tank' ? 'Panzer zerstört!' : u.kind === 'jeep' ? 'Fahrzeug zerstört!' : 'Trupp vertrieben!');
+    }
     hitStructure(s, d) {
       if (!s.alive) return;
+      if (s.unit) { this.fight.hit(s, d, true); return; }
       s.hp -= d;
       if (s.hp > 0) return;
       s.alive = false;
@@ -479,13 +503,18 @@
       this.ab = thr > 0.9 && !this.lost;
       let wantV = this.ab ? 130 : FL.lerp(27, 84, Math.min(1, thr / 0.9));       // Leerlauf ist sehr langsam, voller Schub schnell, Nachbrenner rasant
       if (this.gearDown) wantV = Math.min(wantV, 52);              // ausgefahrenes Fahrwerk bremst
-      wantV = Math.max(24, wantV - F.y * 24);
+      if (this.flaps) wantV = Math.min(wantV * 0.82, 46);          // Landeklappen bremsen und tragen bei wenig Tempo
+      wantV = Math.max(this.flaps ? 19 : 24, wantV - F.y * 24);
       this.speed = FL.lerp(this.speed, wantV, 1 - Math.exp(-(wantV > this.speed ? (this.ab ? 1.1 : 0.75) : 0.6) * dt));
       if (this.gearDown && !this.lost && !this.rtb && this.y > GY + 14) {
         this.gearT -= dt;
         if (this.gearT <= 0) { this.gearT = 6; FL.hud.msg(FL.touch.active ? 'Fahrwerk einfahren (Knopf „Fahrwerk“)' : 'Fahrwerk einfahren: Taste G', C.cyan, true); }
       }
-      this.x += F.x * this.speed * dt; this.y += F.y * this.speed * dt; this.z += F.z * this.speed * dt;
+      // zu langsam: Das Flugzeug sackt durch. Mit Klappen erst viel später, so setzt man mit wenig Schub sanft auf.
+      const stallV = this.flaps ? 31 : 35, sink = this.lost ? 0 : FL.clamp((stallV - this.speed) / stallV, 0, 1) * 15;
+      this.sink = sink;
+      if (sink > 1.5 && !canLand && this.y > fl + 1) { this.stallT = (this.stallT || 0) - dt; if (this.stallT <= 0) { this.stallT = 7; FL.hud.msg('Zu langsam: Das Flugzeug sinkt. Mehr Schub!', C.orange, true); } }
+      this.x += F.x * this.speed * dt; this.y += (F.y * this.speed - sink) * dt; this.z += F.z * this.speed * dt;
       if (this.y > CEIL) this.y = CEIL;
       if (this.y < fl) {
         this.y = fl;
@@ -498,8 +527,10 @@
         const straight = Math.abs(wrap(this.th - (dir > 0 ? 0 : Math.PI))) < 0.32 && Math.abs(phi) < 0.5;
         if (onRw && straight && remain > 150) {
           // sauber aufgesetzt: ausrollen
-          if (-vy > 17 && this.gearDown) { this.hp = Math.max(1, this.hp - 2); FL.hud.damage(0.5); FL.hud.msg('Harte Landung!', C.orange, true); }
-          this.y = GY; this.landDir = dir; this.touched = false; this.v = this.speed; this.gearT = 0; this.roll = 0; this.pitch = 0;
+          const rear = F.y > 0.02 && this.gearDown, down = -vy + this.sink;
+          if (down > 17 && this.gearDown) { this.hp = Math.max(1, this.hp - 2); FL.hud.damage(0.5); FL.hud.msg('Harte Landung!', C.orange, true); }
+          this.y = GY; this.landDir = dir; this.touched = false; this.v = this.speed; this.gearT = 0; this.roll = 0; this.pitch = rear ? -FL.clamp(Math.asin(F.y), 0.05, 0.15) : 0; this.flareT = rear ? 1.3 : 0;
+          if (rear && down <= 17) FL.hud.msg('Hinterräder zuerst: saubere Landung!', C.green, true);
           this.setPhase('landing');
           for (const m of this.apMarks) m.visible = false;
           this.updateBase(0.0001); return;
@@ -523,7 +554,8 @@
       const bvy = F.y * this.speed, fall = (bvy + Math.sqrt(bvy * bvy + 2 * GRAV * this.y)) / GRAV;
       const bx = this.x + F.x * this.speed * fall, bz = this.z + F.z * this.speed * fall;
       const bombR = 13 + 4 * lo.p_bomb;
-      this.ring.visible = true; this.goalRing.visible = false;
+      this.ring.visible = !this.rtb && !this.lost; this.goalRing.visible = false;
+      this.ringD = Math.hypot(bx - this.x, bz - this.z);
       this.ring.position.set(bx, 0.4, bz); this.ring.scale.set(bombR * 2, bombR * 2, 1);
       this.ring.material.opacity = this.bombCd <= 0 ? 1 : 0.35;
       // wohin die Nase am Boden zeigt (nur wenn sie nach unten zeigt)
@@ -594,7 +626,7 @@
         b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
         for (const j of this.jets) if (!j.dead && Math.hypot(j.x - b.x, j.y - b.y, j.z - b.z) < 9) { b.gone = true; this.hitJet(j, b.dmg); fx.spark(b.x, b.y, b.z, 5); break; }
         if (!b.gone && b.y < 20) for (const s of this.structures) {
-          if (s.alive && b.y < s.h + 1 && Math.hypot(s.x - b.x, s.z - b.z) < s.r) { b.gone = true; this.hitStructure(s, b.dmg * 0.3); fx.spark(b.x, b.y + 1, b.z, 5); break; }
+          if (s.alive && b.y < s.h + 1 && Math.hypot(s.x - b.x, s.z - b.z) < s.r) { b.gone = true; this.hitStructure(s, b.dmg * (s.unit && s.kind !== 'tank' ? 0.8 : 0.3)); fx.spark(b.x, b.y + 1, b.z, 5); break; }
         }
         if (!b.gone && b.y <= 0) { b.gone = true; fx.puff('dust', b.x, 0.6, b.z, 5, 0.5, 0, 2, 0, 1.5); }
         if (b.gone) fx.freeShot(b.mesh);
@@ -650,6 +682,11 @@
         s.mesh.position.set(s.x, Math.sin(this.t * 0.9 + s.x) * 0.15, s.z); s.mesh.rotation.y = s.hd; s.mesh.rotation.z = Math.sin(this.t * 0.7 + s.z) * 0.02;
         s.marker.position.x = s.x; s.marker.position.z = s.z;
         if (Math.random() < dt * 6) fx.puff('smoke', s.x - Math.sin(s.hd) * s.r * 1.2, 0.6, s.z - Math.cos(s.hd) * s.r * 1.2, 3, 1.2, 0, 0.3, 0, 0.5);
+      }
+      if (this.fight) {
+        // Der Bodenkampf beginnt, sobald das Flugzeug in der Nähe ist
+        if (!this.fight.on && dist(this, this.site) < 950) { this.fight.on = true; FL.hud.msg('Unsere Truppen greifen an!', C.cyan); FL.hud.msg('Hilf ihnen: Panzer, Fahrzeuge und Trupps ausschalten', C.text, true); }
+        this.fight.update(dt);
       }
       for (const k of this.sinking) {
         k.t += dt; const m = k.s.mesh;
@@ -785,7 +822,9 @@
         this.x += Math.sin(this.th) * this.v * dt; this.z += Math.cos(this.th) * this.v * dt;
         const k = 1 - Math.exp(-5 * dt);
         this.roll = FL.lerp(this.roll, ground ? 0 : -FL.clamp(dth / dt, -1, 1) * 0.5, k);
-        this.pitch = FL.lerp(this.pitch, ground ? 0 : -0.1, k);
+        this.flareT = (this.flareT || 0) - dt;
+        if (!(ground && this.flareT > 0)) this.pitch = FL.lerp(this.pitch, ground ? 0 : -0.1, 1 - Math.exp(-2.4 * dt));     // erst die Hinterräder, dann senkt sich die Nase
+        if (ground) this.y = GY + Math.abs(this.pitch) * 3.2;
         if (ground && this.v <= 9.01) { this.setPhase('taxiback'); FL.hud.msg('Gelandet!', C.gold); FL.hud.msg('Roll zum Parkplatz', C.text, true); }
       } else if (ph === 'parked') {
         this.parkT -= dt;
@@ -940,10 +979,16 @@
           T1.copy(Y_AXIS).addScaledVector(cf, -cf.y).normalize();
           cu.lerp(T1, 1 - Math.exp(-(cu.y > 0 ? 6 : 2.2) * dt)).normalize();
         }
-        const sp = FL.clamp((this.speed - 60) / 70, -0.5, 1), back = 26 + sp * 5;
-        cam.position.set(this.x - cf.x * back + cu.x * 8 + FL.rand(-sh, sh), Math.max(1.5, this.y - cf.y * back + cu.y * 8 + FL.rand(-sh, sh)), this.z - cf.z * back + cu.z * 8);
+        // Liegt der Bombenkreis fast unter dem Flugzeug (langsam oder hoch), schaut die Kamera von weiter oben steiler nach unten
+        const wantLd = this.ring.visible && this.y > 20 && Math.abs(cf.y) < 0.5 && cu.y > 0.5 ? FL.clamp(1.15 - (this.ringD || 999) / (this.y * 1.9), 0, 1) : 0;
+        this.ld = FL.lerp(this.ld || 0, wantLd, 1 - Math.exp(-2.5 * dt));
+        const ld = this.ld, sp = FL.clamp((this.speed - 60) / 70, -0.5, 1), back = 26 + sp * 5 + ld * 6, upO = 8 + ld * 20;
+        cam.position.set(this.x - cf.x * back + cu.x * upO + FL.rand(-sh, sh), Math.max(1.5, this.y - cf.y * back + cu.y * upO + FL.rand(-sh, sh)), this.z - cf.z * back + cu.z * upO);
         cam.up.copy(cu);
-        cam.lookAt(this.x + cf.x * 45 - cu.x * 3, this.y + cf.y * 45 - cu.y * 3, this.z + cf.z * 45 - cu.z * 3);
+        // Blickziel: normal voraus, sonst ein Punkt zwischen Flugzeug und Bombenkreis, damit beides im Bild ist
+        T1.set(this.ring.position.x - this.x, -this.y, this.ring.position.z - this.z).normalize();
+        const k0 = 1 - ld;
+        cam.lookAt(this.x + (cf.x * 45 - cu.x * 3) * k0 + T1.x * 42 * ld, this.y + (cf.y * 45 - cu.y * 3) * k0 + T1.y * 42 * ld, this.z + (cf.z * 45 - cu.z * 3) * k0 + T1.z * 42 * ld);
         const fov = this.fov0 + sp * 9;                                  // schnell = weiterer Blick, so spürt man das Tempo
         if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, 3 * dt); cam.updateProjectionMatrix(); }
         this.camTh = this.th;
@@ -967,8 +1012,9 @@
         `<div>Panzerung</div>${H.meter(hp, hp < 0.35 ? 'red' : hp < 0.65 ? 'gold' : '')}` +
         `<div>Treibstoff</div>${H.meter(fuel, fuel < 0.2 ? 'red' : 'cyan')}` +
         `<div>Höhe ${Math.round(Math.max(0, this.y - GY) * 10)} m · Tempo <b>${Math.round((this.phase === 'flight' ? this.speed : this.v || 0) * 10)}</b> km/h</div>` +
-        (this.phase === 'flight' || this.phase === 'landing' || this.phase === 'takeoff' ? `<div>Schub ${this.ab ? '<b style="color:#ff8c3c">NACHBRENNER</b>' : Math.round(Math.min(1, (this.thr || 0) / 0.9) * 100) + ' %'} · Fahrwerk ${this.gearDown ? '<b style="color:#46dcff">aus</b>' : 'ein'}</div>` : ''));
+        (this.phase === 'flight' || this.phase === 'landing' || this.phase === 'takeoff' ? `<div>Schub ${this.ab ? '<b style="color:#ff8c3c">NACHBRENNER</b>' : Math.round(Math.min(1, (this.thr || 0) / 0.9) * 100) + ' %'} · Fahrwerk ${this.gearDown ? '<b style="color:#46dcff">aus</b>' : 'ein'}${this.flaps ? ' · <b style="color:#46dcff">Klappen</b>' : ''}</div>` : ''));
       let tc = `<div>${this.goal === 'jets' ? 'Jäger' : 'Ziele'}: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
+      if (this.fight && !this.rtb) { const f = this.fight.ownFrac(); tc += `<div>Eigene Truppen</div>${H.meter(f, f < 0.35 ? 'red' : f < 0.65 ? 'gold' : 'cyan')}`; }
       if (this.timeLeft > 0) tc += `<div>Zeit <b style="color:${this.timeLeft < 30 ? '#ef5a4c' : '#46dcff'}">${Math.floor(this.timeLeft / 60)}:${String(Math.floor(this.timeLeft % 60)).padStart(2, '0')}</b></div>`;
       const next = this.goal === 'jets' ? this.jets.filter(j => !j.dead)[0] : this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
       const ph = this.phase, walking = ph === 'walk' || ph === 'walkback';
@@ -990,7 +1036,7 @@
         else {
           const want = dT * 0.11, h = this.y - GY;
           tc += `<div>Landebahn ${Math.round(dT)} m · ${h > want + 9 ? '<b style="color:#ff8c3c">zu hoch: sinken</b>' : h < want - 9 && dT > 60 ? '<b style="color:#ff8c3c">zu tief: halten</b>' : '<b style="color:#5fd07a">Höhe gut</b>'}</div>` +
-            `<div>${this.gearDown ? 'Fahrwerk ist aus' : '<b style="color:#ef5a4c">Fahrwerk ausfahren!</b>'}</div>`;
+            `<div>${this.gearDown ? 'Fahrwerk ist aus' : '<b style="color:#ef5a4c">Fahrwerk ausfahren!</b>'} · ${this.flaps ? 'Klappen sind aus: Schub wegnehmen, Nase leicht hoch' : '<b style="color:#ffc43c">Klappen ausfahren (F)</b>'}</div>`;
         }
       }
       else if (next) tc += dist(this, this.site) > 650 ? to('Einsatzort ' + BIOMES[this.site.biome], this.site) : to('Nächstes Ziel', next);
@@ -1001,6 +1047,7 @@
       const items = [];
       for (const s of this.structures) if (s.alive) items.push({ x: s.x, z: s.z, color: s.primary ? '#ff5a3c' : s.kind === 'flak' ? '#ffc43c' : '#6f7f8c', size: s.primary ? 4 : 2.5, far: s.primary });
       for (const j of this.jets) items.push({ x: j.x, z: j.z, color: '#ff40c0', size: 4, far: true });
+      if (this.fight) for (const u of this.fight.own) if (u.alive) items.push({ x: u.x, z: u.z, color: '#46dcff', size: 3 });
       items.push({ x: BX, z: (RZ0 + RZ1) / 2, color: '#5fd07a', size: 5, far: true });
       if (this.rtb) for (const a of [AP_N, AP_S]) items.push({ x: a.x, z: a.z, color: '#46dcff', size: 4, far: true });
       else items.push({ x: this.site.x, z: this.site.z, color: '#ffe14a', size: 8, far: true, ring: true });
@@ -1009,7 +1056,13 @@
       FL.drawMinimap(this.map, me.x, me.z, myTh, air ? 520 : 120, items);
     }
 
-    onKey(code) { if (code === 'KeyG') this.toggleGear(); }
+    onKey(code) {
+      if (code === 'KeyG') this.toggleGear();
+      else if (code === 'KeyF' && (this.phase === 'flight' || this.phase === 'landing')) {
+        this.flaps = !this.flaps; FL.audio.play('gear');
+        FL.hud.msg(this.flaps ? 'Landeklappen ausgefahren: langsamer, sinkt später' : 'Landeklappen eingefahren', C.cyan, true);
+      }
+    }
     destroy() { FL.tilt.air = false; this.stage.dispose(); }
   };
 })();

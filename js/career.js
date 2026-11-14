@@ -79,7 +79,7 @@ FL.loadout = up => {
 };
 
 // ---------------------------------------------------------------- Karriere
-FL.KIND_NAMES = { attack: 'Angriff: Basis erobern', defend: 'Verteidigung der eigenen Basis', flight: 'Luftangriff im Kampfflugzeug', tank: 'Panzer-Einsatz' };
+FL.KIND_NAMES = { attack: 'Angriff: Basis erobern', defend: 'Verteidigung der eigenen Basis', flight: 'Luftangriff im Kampfflugzeug', heli: 'Hubschrauber: Bodentruppen unterstützen', tank: 'Panzer-Einsatz' };
 FL.CAREER = [
   { kind: 'attack', theme: 'wald', tier: 0, sections: 2, reward: 200, name: 'Das Waldlager', text: 'Ein kleines Lager mit Holzpalisade. Rücke über den Waldweg vor und zerstöre Tor, Wachtürme und Kommandozelt. Deine Ausrüstung ist noch schwach: Nutze die Deckung!' },
   { kind: 'defend', theme: 'wald', tier: 0.5, waves: 3, reward: 220, name: 'Gegenangriff', text: 'Der Gegner will das Lager zurück. Halte deine Basis gegen drei Angriffswellen. Jeder Durchbruch schwächt die Basis.' },
@@ -153,6 +153,37 @@ FL.SCENARIOS = [
     auftrag: 'Versenke alle sechs Schiffe.',
     gefahr: 'Sechs Schiffe mit Flak und bis zu zwei Jäger gleichzeitig.', tipp: 'Erst die Schnellboote am Rand, dann die großen Zerstörer. Die brauchen mehr als einen Treffer.',
     sc: { seed: 33, ships: { n: 6, big: 2 }, flakPrim: false, jets: { n: 2, cd: 14 } } },
+  { id: 'f11', kind: 'flight', theme: 'wald', tier: 1.5, reward: 420, name: 'Sturm auf die Waldbasis',
+    lage: 'Unsere Panzer und Soldaten greifen eine Basis im Wald an. Davor hat der Gegner Panzer, Fahrzeuge und Trupps aufgestellt. Allein kommen unsere Leute nicht durch.',
+    auftrag: 'Unterstütze die Bodentruppen aus der Luft: Schalte alle Panzer, Fahrzeuge und Trupps vor der Basis aus und zerstöre die Kommandozentrale.',
+    gefahr: 'Die Anzeige „Eigene Truppen“ sinkt, solange der Gegner schießt. Ist sie leer, ist der Einsatz verloren. Dazu etwas Flak.', tipp: 'Panzer mit Bomben, Trupps und Fahrzeuge mit der Bordkanone. Die eigenen Truppen sind auf der Karte hellblau, ihnen passiert durch deine Bomben nichts.',
+    sc: { seed: 61, biome: 'wald', prim: ['hq'], flak: -1, flakPrim: false, support: { foes: { tanks: 3, jeeps: 2, squads: 3 }, own: { tanks: 3, squads: 3 }, last: 125 } } },
+  { id: 'f12', kind: 'flight', theme: 'wueste', tier: 3, reward: 600, name: 'Wüstenoffensive',
+    lage: 'Großangriff auf die Wüstenfestung. Der Gegner wirft alles in die Schlacht, was er hat, und seine Jäger sind auch in der Luft.',
+    auftrag: 'Hilf den Bodentruppen, die Festung einzunehmen: alle Panzer, Fahrzeuge und Trupps ausschalten, dazu Kommandozentrale und Bunker.',
+    gefahr: 'Fünf Panzer, viele Fahrzeuge und Trupps, Flak und Jäger. Unsere Truppen halten nicht lange durch.', tipp: 'Zuerst die Panzer: Sie machen den größten Schaden an unseren Truppen. Raketen suchen sich ihr Ziel selbst.',
+    sc: { seed: 67, biome: 'wueste', prim: ['hq', 'bunker'], flakPrim: false, jets: { n: 1, cd: 40 }, support: { foes: { tanks: 5, jeeps: 4, squads: 4 }, own: { tanks: 4, squads: 4 }, last: 125 } } },
+
+  { id: 'h1', kind: 'heli', theme: 'wald', tier: 0.5, reward: 300, name: 'Luftunterstützung',
+    lage: 'Unsere Soldaten und Panzer greifen ein kleines Lager im Wald an. Der Gegner hat sich davor eingegraben.',
+    auftrag: 'Flieg mit dem Kampfhubschrauber hin und hilf den Bodentruppen: Schalte Trupps, Fahrzeuge und Panzer aus und zerstöre die markierten Gebäude.',
+    gefahr: 'Eine Flak und die Waffen der Gegner am Boden. Wer dich sieht, visiert dich an und schießt nach kurzer Zeit.', tipp: 'Bleib hinter einem Hügel oder Waldstück, steig kurz auf, schieß und tauch wieder ab. Oben links steht, ob du in Deckung bist.',
+    sc: { seed: 3, prim: ['depot'], flak: 1, hills: 7, woods: 5, support: { foes: { tanks: 1, jeeps: 1, squads: 3 }, own: { tanks: 2, squads: 2 }, last: 170 } } },
+  { id: 'h2', kind: 'heli', theme: 'winter', tier: 1.5, reward: 400, name: 'Durch das Tal',
+    lage: 'Die gegnerische Stellung liegt hinter einem Tal in den Bergen. Auf freier Fläche sieht dich die Flak sofort.',
+    auftrag: 'Flieg tief durch das Tal bis zur Stellung und unterstütze unsere Truppen beim Angriff.',
+    gefahr: 'Drei Flak-Geschütze, Panzer und Fahrzeuge.', tipp: 'Im Tal bist du unsichtbar. Schalte zuerst die Flak aus: aufsteigen, Raketen los, abtauchen.',
+    sc: { seed: 9, valley: true, prim: ['hq', 'depot'], flak: 3, hills: 6, woods: 3, support: { foes: { tanks: 2, jeeps: 2, squads: 3 }, own: { tanks: 3, squads: 3 }, last: 160 } } },
+  { id: 'h3', kind: 'heli', theme: 'wueste', tier: 2.5, reward: 500, name: 'Panzerjäger',
+    lage: 'Eine Panzerkompanie des Gegners stellt sich unseren Truppen in den Dünen entgegen. Ohne Hilfe aus der Luft kommen sie nicht vorbei.',
+    auftrag: 'Zerstöre alle Panzer und Fahrzeuge und hilf den Bodentruppen, die Stellung zu nehmen.',
+    gefahr: 'Fünf Panzer. Sie schießen auch auf Hubschrauber, die tief fliegen.', tipp: 'Raketen sind die beste Waffe gegen Panzer. Hinter den Dünen laden sie in Ruhe nach.',
+    sc: { seed: 15, prim: ['bunker'], flak: 2, hills: 10, woods: 0, support: { foes: { tanks: 5, jeeps: 2, squads: 2 }, own: { tanks: 4, squads: 3 }, last: 160 } } },
+  { id: 'h4', kind: 'heli', theme: 'daemmerung', tier: 4, reward: 700, name: 'Sturm in der Dämmerung',
+    lage: 'Der große Angriff auf die Festung beginnt bei Sonnenuntergang. Alle verfügbaren Truppen sind dabei.',
+    auftrag: 'Unterstütze den Angriff, bis die Festung eingenommen ist: alle Truppen des Gegners, die Kommandozentrale, das Depot und der Hangar.',
+    gefahr: 'Vier Flak-Geschütze, viele Panzer, Fahrzeuge und Trupps. Sie visieren schneller an als sonst.', tipp: 'Nie lange oben bleiben. Am Landeplatz wird der Hubschrauber repariert: Lieber einmal zurückfliegen als abgeschossen werden.',
+    sc: { seed: 27, valley: true, prim: ['hq', 'depot', 'hangar'], flak: 4, hills: 8, woods: 4, support: { foes: { tanks: 4, jeeps: 4, squads: 5 }, own: { tanks: 4, squads: 5 }, last: 170 } } },
 
   { id: 't1', kind: 'tank', theme: 'wald', tier: 0.5, reward: 260, name: 'Spähtrupp',
     lage: 'Im Wald wurden zwei kleine Lager des Gegners gemeldet. Niemand weiß genau, was dort steht.',

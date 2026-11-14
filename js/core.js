@@ -148,9 +148,36 @@ FL.audio = {
     s.start(t, Math.random() * 1.2, dur + 0.05);
   },
   // Dauerton für Triebwerk ('jet') oder Panzermotor ('tank'). level 0 bis 1, ab = Nachbrenner. Muss jedes Bild neu gerufen werden.
+  // Hubschrauber: Rauschen, das im Takt der Rotorblätter lauter und leiser wird, dazu das Pfeifen der Turbine
+  heliEngine(level) {
+    const c = this.ctx;
+    let e = this.eng.heli;
+    if (!e) {
+      e = this.eng.heli = { live: false, t: 0 };
+      e.main = c.createGain(); e.main.gain.value = 0; e.main.connect(this.out);
+      const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; s.start();
+      e.f = c.createBiquadFilter(); e.f.type = 'lowpass'; e.f.frequency.value = 240; e.f.Q.value = 0.8;
+      e.chop = c.createGain(); e.chop.gain.value = 0.5;
+      e.lfo = c.createOscillator(); e.lfo.type = 'sawtooth'; e.lfo.frequency.value = 11; e.lfo.start();
+      e.depth = c.createGain(); e.depth.gain.value = 0.45; e.lfo.connect(e.depth); e.depth.connect(e.chop.gain);
+      e.vol = c.createGain(); e.vol.gain.value = 0;
+      s.connect(e.f); e.f.connect(e.chop); e.chop.connect(e.vol); e.vol.connect(e.main);
+      e.osc = c.createOscillator(); e.osc.type = 'sawtooth'; e.osc.start();
+      e.wf = c.createBiquadFilter(); e.wf.type = 'bandpass'; e.wf.frequency.value = 1400; e.wf.Q.value = 2;
+      e.whine = c.createGain(); e.whine.gain.value = 0;
+      e.osc.connect(e.wf); e.wf.connect(e.whine); e.whine.connect(e.main);
+    }
+    const t = c.currentTime, set = (p, v) => p.setTargetAtTime(v, t, 0.15);
+    level = FL.clamp(level, 0, 1);
+    set(e.lfo.frequency, 8 + 6 * level); set(e.f.frequency, 190 + 160 * level); set(e.vol.gain, 0.5 + 0.9 * level);
+    set(e.osc.frequency, 700 + 500 * level); set(e.whine.gain, 0.006 + 0.01 * level);
+    e.t = performance.now();
+    if (!e.live) { e.live = true; e.main.gain.setTargetAtTime(1, t, 0.15); }
+  },
   engine(kind, level, ab) {
     const c = this.ctx;
     if (!c || FL.save.muted) return;
+    if (kind === 'heli') return this.heliEngine(level);
     let e = this.eng[kind];
     // mit Aufnahme: eine Endlosschleife, deren Tonhöhe und Lautstärke dem Schub folgen
     const loopName = kind === 'jet' ? 'jetloop' : 'tankloop';

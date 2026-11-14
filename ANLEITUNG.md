@@ -133,7 +133,7 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 
 ## Sondereinsätze
 
-Im Hauptmenü gibt es 16 Sondereinsätze: acht für das Kampfflugzeug und acht für den Panzer. Vor jedem Start kommt ein Briefing mit Lage, Auftrag, Gefahren und Tipp. Alle sind von Anfang an offen und werden mit der Ausrüstung aus der Karriere gespielt. Es gibt Einsätze mit Zeitlimit, reine Luftkämpfe gegen Jäger, Jagd auf Flak-Stellungen, Panzerschlachten und Einsätze mit kaum Reparaturkisten.
+Im Hauptmenü gibt es 24 Sondereinsätze: zwölf für das Kampfflugzeug, vier für den Hubschrauber und acht für den Panzer. Vor jedem Start kommt ein Briefing mit Lage, Auftrag, Gefahren und Tipp. Alle sind von Anfang an offen und werden mit der Ausrüstung aus der Karriere gespielt. Es gibt Einsätze mit Zeitlimit, reine Luftkämpfe gegen Jäger, Jagd auf Flak-Stellungen, Panzerschlachten und Einsätze mit kaum Reparaturkisten.
 
 Je besser Flugzeug oder Panzer ausgebaut sind, desto mehr hält der Gegner dagegen: mehr Flak, mehr und stärkere Panzer und Jäger. Im freien Spiel gibt es zusätzlich die Schwierigkeiten „Sehr schwer“ und „Extrem“.
 
@@ -194,6 +194,36 @@ Beim Angriff verschiebt Q den Trupp nach links und R nach rechts (iPad: Knöpfe 
 ## Schiffe angreifen
 
 Unter „Sondereinsätze“ gibt es zwei neue Flüge aufs Meer: „Blockadebrecher“ (drei Schiffe) und „Seeschlacht“ (sechs Schiffe und Jäger). Die Schiffe fahren, schießen mit Bordflak und sinken, wenn sie genug Treffer haben. Zerstörer halten mehr aus als Schnellboote. Auch bei normalen Flügen ans Meer liegen zwei Schiffe vor der Küste.
+
+## Landen mit Landeklappen
+
+- Taste F (iPad: Knopf „Klappen“) fährt die Landeklappen aus. Damit fliegt das Flugzeug langsamer und trägt auch bei wenig Tempo noch.
+- Wer zu langsam wird, sinkt: Ohne Klappen ab etwa 350 km/h, mit Klappen erst ab etwa 310 km/h. Nimmst du über der Bahn den Schub ganz weg und hebst die Nase leicht an, setzt das Flugzeug von selbst auf.
+- Zeigt die Nase beim Aufsetzen etwas nach oben, berühren die Hinterräder zuerst den Boden und die Nase senkt sich danach. Dafür gibt es die Meldung „Hinterräder zuerst: saubere Landung!“.
+- Beim Rückflug zur Basis ist der Bombenzielkreis ausgeblendet. Fliegst du langsam oder hoch, schaut die Kamera steiler nach unten, damit Flugzeug und Zielkreis beide im Bild bleiben.
+
+## Bodentruppen aus der Luft unterstützen
+
+Unter „Sondereinsätze“ gibt es beim Kampfflugzeug die Einsätze „Sturm auf die Waldbasis“ und „Wüstenoffensive“. Eigene Panzer und Soldaten greifen dort eine Basis an, davor stehen Panzer, Fahrzeuge und Trupps des Gegners. Alle haben eine Zielmarke. Die Anzeige „Eigene Truppen“ oben in der Mitte sinkt, solange der Gegner schießt. Ist sie leer, ist der Einsatz verloren. Panzer triffst du am besten mit Bomben oder Raketen, Trupps und Fahrzeuge mit der Bordkanone. Die eigenen Truppen sind auf der Karte hellblau und werden von deinen Bomben nicht getroffen.
+
+## Hubschrauber
+
+Unter „Sondereinsätze“ gibt es den neuen Reiter „Hubschrauber“ mit vier Einsätzen, im freien Spiel die Einsatzart „Hubschrauber“. Du startest auf dem Landeplatz, fliegst zum Einsatzort und hilfst den eigenen Bodentruppen, eine Basis einzunehmen. Danach fliegst du zurück und landest wieder auf dem Landeplatz.
+
+| Was | Tastatur | iPad |
+|---|---|---|
+| vor und zurück, drehen | Pfeiltasten | Steuerknüppel links |
+| hoch und runter | W und S | Knöpfe „Hoch“ und „Runter“ |
+| seitwärts | A und D | Knöpfe „Seite“ |
+| Bordkanone | Leertaste oder Mausklick | irgendwo tippen oder halten, Knopf FEUER |
+| Raketen | R | Knopf RAKETE oder nach oben wischen |
+
+- Hügel und Waldstücke sind Deckung: Wer dahinter schwebt, wird vom Gegner nicht gesehen. Oben links steht dann „In Deckung“.
+- Sieht dich ein Gegner, steht dort „Du wirst anvisiert!“ mit einem roten Balken. Ist der Balken voll, schießt er. Tauchst du vorher wieder ab oder weichst zur Seite aus, geht der Schuss daneben.
+- So geht es am besten: hinter einem Hügel aufsteigen, Ziel anvisieren lassen (grüner Ring), schießen, wieder abtauchen.
+- Der Hubschrauber stürzt nicht ab. Über Hügel und Baumkronen steigt er von selbst.
+- Wer zwischendurch auf dem Landeplatz landet, wird repariert.
+- Die Ausbauten für das Flugzeug (Panzerung, Bordkanone, Triebwerk, Raketen) gelten auch für den Hubschrauber.
 
 ## Modelle
 

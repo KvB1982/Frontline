@@ -4,8 +4,8 @@
   const A = FL.app = { mode: null, backdrop: null, paused: false, done: false, ctx: null, last: 0 };
   const screen = () => document.getElementById('screen');
   const DIFFS = [{ name: 'Leicht', v: 0.7 }, { name: 'Normal', v: 0.85 }, { name: 'Schwer', v: 1.05 }, { name: 'Sehr schwer', v: 1.3 }, { name: 'Extrem', v: 1.6 }];
-  const KINDS = ['attack', 'defend', 'flight', 'tank'];
-  const SHORT = { attack: 'Angriff', defend: 'Verteidigung', flight: 'Kampfflugzeug', tank: 'Panzer' };
+  const KINDS = ['attack', 'defend', 'flight', 'heli', 'tank'];
+  const SHORT = { attack: 'Angriff', defend: 'Verteidigung', flight: 'Kampfflugzeug', heli: 'Hubschrauber', tank: 'Panzer' };
 
   const clearScreen = () => { const s = screen(); s.innerHTML = ''; return s; };
   const clearHud = () => { document.getElementById('hud').innerHTML = ''; FL.hud.msgs = null; FL.hud.dmgEl = null; };
@@ -159,7 +159,7 @@
     FL.el('div', 'hint', 'Alle Sondereinsätze sind von Anfang an offen. Du spielst mit der Ausrüstung aus deiner Karriere.', P.foot);
     const draw = () => {
       tabs.innerHTML = ''; grid.innerHTML = '';
-      for (const [k, name] of [['flight', 'Kampfflugzeug'], ['tank', 'Panzer']]) {
+      for (const [k, name] of [['flight', 'Kampfflugzeug'], ['heli', 'Hubschrauber'], ['tank', 'Panzer']]) {
         const t = FL.el('button', 'tab' + (k === scTab ? ' on' : ''), name, tabs);
         t.type = 'button';
         t.addEventListener('click', () => { FL.audio.play('click'); scTab = k; draw(); });
@@ -179,7 +179,7 @@
     const b = FL.el('div', 'panel brief briefing', '', P.body);
     b.innerHTML = `<div class="muted">${FL.KIND_NAMES[S.kind]} · ${FL.THEMES[S.theme].name} · Stärke ${Math.round(S.tier * 2 + 1)} von 11</div>` +
       `<h3>Lage</h3><p>${S.lage}</p><h3>Dein Auftrag</h3><p>${S.auftrag}</p><h3>Gefahren</h3><p>${S.gefahr}</p><h3>Tipp</h3><p>${S.tipp}</p>` +
-      (S.kind === 'flight' ? '<p class="muted">Ablauf: zum Flugzeug laufen, zur Startbahn rollen, starten, Auftrag erfüllen, zurückfliegen und selbst landen.</p>' : '') +
+      (S.kind === 'flight' ? '<p class="muted">Ablauf: zum Flugzeug laufen, zur Startbahn rollen, starten, Auftrag erfüllen, zurückfliegen und selbst landen.</p>' : S.kind === 'heli' ? '<p class="muted">Ablauf: abheben, zum Einsatzort fliegen, die Bodentruppen unterstützen, zurückfliegen und auf dem Landeplatz landen. Wer zwischendurch dort landet, wird repariert.</p>' : '') +
       `<p>Prämie: <span class="coins">${done ? Math.round(S.reward * 0.4) : S.reward}</span>${done ? ' <span class="muted">(schon geschafft, deshalb weniger)</span>' : ''} und dazu Münzen für jeden Treffer.</p>`;
     const go = btn(P.foot, 'Einsatz starten', 'primary', () => launch(scenarioCfg(S), FL.loadout(FL.save.up), { type: 'scenario', id: S.id }));
     const prev = FL.onKey;
@@ -289,7 +289,7 @@
       if (A.mode) { A.mode.destroy(); A.mode = null; }
       clearScreen(); FL.keys = {};
       A.ctx = { cfg, lo, ctx }; A.paused = false; A.done = false;
-      const Mode = cfg.kind === 'flight' ? FL.FlightMission : cfg.kind === 'tank' ? FL.TankMission : cfg.kind === 'defend' ? FL.BaseDefense : FL.GroundBattle;
+      const Mode = cfg.kind === 'flight' ? FL.FlightMission : cfg.kind === 'heli' ? FL.HeliMission : cfg.kind === 'tank' ? FL.TankMission : cfg.kind === 'defend' ? FL.BaseDefense : FL.GroundBattle;
       A.mode = new Mode(cfg, lo);
       FL.touch.show(cfg.kind, lo);
       FL.onKey = code => {
