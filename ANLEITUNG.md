@@ -131,6 +131,26 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 - Vor der gegnerischen Basis zielt dein Soldat von selbst auf das nächste Gebäude, wenn kein Gegner vor ihm steht.
 - Wenn das Spiel ruckelt: im Hauptmenü bei „Grafik“ auf „schnell“ stellen.
 
+## Sondereinsätze
+
+Im Hauptmenü gibt es 16 Sondereinsätze: acht für das Kampfflugzeug und acht für den Panzer. Vor jedem Start kommt ein Briefing mit Lage, Auftrag, Gefahren und Tipp. Alle sind von Anfang an offen und werden mit der Ausrüstung aus der Karriere gespielt. Es gibt Einsätze mit Zeitlimit, reine Luftkämpfe gegen Jäger, Jagd auf Flak-Stellungen, Panzerschlachten und Einsätze mit kaum Reparaturkisten.
+
+Je besser Flugzeug oder Panzer ausgebaut sind, desto mehr hält der Gegner dagegen: mehr Flak, mehr und stärkere Panzer und Jäger. Im freien Spiel gibt es zusätzlich die Schwierigkeiten „Sehr schwer“ und „Extrem“.
+
+## Selbst landen
+
+Wenn alle Ziele zerstört sind, fliegst du zurück zur Basis. Die blauen Ringe zeigen, wo der Anflug beginnt. Dann:
+
+1. Fahrwerk ausfahren (G oder Knopf „Fahrwerk“).
+2. In Richtung der Landebahn fliegen und langsam sinken. Oben in der Mitte steht, ob du zu hoch oder zu tief bist.
+3. Auf der Bahn aufsetzen. Das Flugzeug bremst dann von selbst, und du rollst zum Parkplatz.
+
+Wer neben der Bahn, schräg oder zu spät aufsetzt, startet automatisch durch und versucht es noch einmal. Sehr steiles Aufsetzen oder Landen ohne Fahrwerk kostet Panzerung.
+
+## Panzer auf dem iPad
+
+Auf dem freien Bildschirm nach links oder rechts wischen dreht den Turm. Nach oben wischen stellt ihn wieder geradeaus.
+
 ## Flugzeug: Schub, Fahrwerk und Zielhilfe
 
 - Das Flugzeug steigt jetzt bis 2600 m. Oben ist man vor der Flak sicherer, unten trifft man leichter.

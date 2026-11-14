@@ -10,6 +10,10 @@
     constructor(cfg, lo) {
       this.cfg = cfg; this.lo = lo; this.result = null;
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
+      // sc = Besonderheiten eines Sondereinsatzes, pw = wie stark der eigene Panzer ausgebaut ist (0 bis 1): Der Gegner hält dagegen
+      const sc = this.sc = cfg.sc || {};
+      this.pw = (lo.t_armor + lo.t_gun + lo.t_reload + lo.t_engine) / 12 * 0.75 + (lo.drones + lo.heli + lo.bomber + lo.arty) / 8 * 0.25;
+      this.goal = sc.goal || 'targets'; this.timeLeft = sc.time || 0;
       const st = this.stage = new FL.Stage(cfg.theme, { far: 1000, shadow: 75, fov: 55 });
       this.fx = new FL.FX(st);
       this.t = 0; this.kills = 0; this.coins = 0; this.endT = -1; this.lost = false;
@@ -34,12 +38,13 @@
 
     // ---------------------------------------------------------------- Aufbau
     buildWorld() {
-      const th = this.cfg.theme, st = this.stage, tier = this.tier, rnd = FL.seeded(137 + Math.round(tier * 10) + th.length * 5);
+      const th = this.cfg.theme, st = this.stage, tier = this.tier, sc = this.sc, pw = this.pw, rnd = FL.seeded(137 + Math.round(tier * 10) + th.length * 5 + (sc.seed || 0));
       st.ground(2600, FL.tex.ground(th), 18);
       const placed = [{ x: 0, z: -285, r: 30 }];
       // Lager des Gegners: jedes mit Zielen, Geschütz und etwas drumherum
       const sets = [['depot', 'depot'], ['bunker', 'radar'], ['hangar', 'depot'], ['hq', 'antenna'], ['radar', 'bunker']];
-      const nCamps = FL.clamp(2 + Math.round(tier * 0.75), 3, 5);
+      const nCamps = sc.camps || FL.clamp(2 + Math.round(tier * 0.75), 3, 5);
+      const bp = this.goal === 'targets' && !sc.turretPrim, tp = !!sc.turretPrim;
       const camps = [];
       for (let i = 0; i < nCamps; i++) {
         const a = -1.25 + 2.5 * (nCamps === 1 ? 0.5 : i / (nCamps - 1)) + (rnd() - 0.5) * 0.25, d = 150 + rnd() * 110 + (i % 2) * 60;
@@ -54,7 +59,7 @@
         mesh.rotation.y = kind === 'turret' ? 0 : Math.floor(rnd() * 4) * Math.PI / 2;
         st.add(mesh);
         if (u.spin) this.spinners.push(u.spin);
-        const hp = (kind === 'turret' ? 10 : Math.min(u.hp, 30)) * (1 + 0.22 * tier);
+        const hp = (kind === 'turret' ? 10 : Math.min(u.hp, 30)) * (1 + 0.22 * tier) * (1 + 0.6 * pw);
         const s = { kind, x: p[0], z: p[1], r: u.r, h: u.h, hp, max: hp, mesh, alive: true, primary, cd: FL.rand(2, 4), gun: kind === 'turret' };
         if (primary) { s.marker = FL.sprite(FL.tex.icon('target'), 5, { depthTest: false, fog: false }); s.marker.position.set(s.x, s.h + 4, s.z); st.add(s.marker); }
         this.structures.push(s);
@@ -62,9 +67,10 @@
         return s;
       };
       camps.forEach((c, i) => {
-        for (const k of sets[i % sets.length]) add(k, c, true, 0, 22);
-        add('turret', c, false, 20, 34);
-        if (tier >= 3) add('turret', c, false, 20, 36);
+        for (const k of sets[i % sets.length]) add(k, c, bp, 0, 22);
+        add('turret', c, tp, 20, 34);
+        if (tier >= 3) add('turret', c, tp, 20, 36);
+        for (let q = 0; q < (sc.turrets || 0) + (pw > 0.6 ? 1 : 0); q++) add('turret', c, tp, 22, 42);
         for (const k of ['barracks', 'tent', 'tower'].slice(0, 2 + (i % 2))) add(k, c, false, 10, 36);
         for (let w = 0; w < 3; w++) {
           const a = rnd() * 6.283, m = FL.building('sandbags', th, { len: 6 });
@@ -75,21 +81,20 @@
         const road = st.strip(9, len, FL.tex.road(th), 9, 12, dx / 2, -285 + dz / 2, 0.04 + i * 0.004);
         road.rotation.z = Math.atan2(dx, dz); st.add(road);
       });
-      this.nPrimary = this.structures.filter(s => s.primary).length;
-
       // gegnerische Panzer
-      const nTanks = Math.round(1.4 + tier * 0.9);
+      const nTanks = (sc.tanks || Math.round(1.4 + tier * 0.9)) + Math.round(2.5 * pw);
       for (let i = 0; i < nTanks; i++) {
-        const c = camps[i % camps.length], p = FL.scatter(rnd, placed, 5, c.x, c.z, 38, 60, 6);
+        const c = camps[i % camps.length], p = FL.scatter(rnd, placed, 5, c.x, c.z, 38, 60 + i * 5, 6);
         if (!p) continue;
         const mesh = FL.tankModel(FL.PAL.enemy(th)); st.add(mesh);
-        const hp = 12 * (1 + 0.25 * tier);
+        const hp = 12 * (1 + 0.25 * tier) * (1 + 0.8 * pw);
         const e = { x: p[0], z: p[1], th: rnd() * 6.283, hp, max: hp, cd: FL.rand(2, 4), mesh, r: 3.2, alert: false };
         e.bar = FL.box(3, 0.22, 0.08, FL.basic(0xf05a46), 0, 4.2, 0); e.bar.castShadow = false; mesh.add(e.bar);
         this.tanks.push(e);
       }
+      this.nPrimary = this.goal === 'tanks' ? this.tanks.length : this.structures.filter(s => s.primary).length;
       // Reparaturkisten
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < (sc.crates === undefined ? 3 : sc.crates); i++) {
         const p = FL.scatter(rnd, placed, 3, 0, -60 + i * 90, 20, 150, 10);
         if (!p) continue;
         const g = new THREE.Group();
@@ -122,7 +127,7 @@
     }
 
     // ---------------------------------------------------------------- Treffer
-    left() { return this.structures.filter(s => s.alive && s.primary).length; }
+    left() { return this.goal === 'tanks' ? this.tanks.filter(e => !e.dead).length : this.structures.filter(s => s.alive && s.primary).length; }
     hitStructure(s, d) {
       if (!s.alive) return;
       s.hp -= d;
@@ -158,6 +163,7 @@
       const rb = FL.rubble(3, 2); rb.position.set(e.x, 0, e.z); this.stage.add(rb);
       this.burning.push({ x: e.x, z: e.z, t: 20, size: 2 });
       this.kills++; this.coins += 15;
+      if (this.goal === 'tanks' && this.endT < 0 && !this.lost) { const n = this.left(); if (n === 0) { this.endT = 3; FL.hud.msg('ALLE PANZER ZERSTÖRT!', C.gold); } else FL.hud.msg('Panzer zerstört! Noch ' + n, C.orange, true); }
       FL.hud.msg('Panzer zerstört!', C.green, true);
     }
     hurt(d) {
@@ -325,7 +331,8 @@
       this.v = FL.lerp(this.v, fwd * this.maxV, 1 - Math.exp(-3 * dt));
       FL.audio.engine('tank', Math.min(1, Math.abs(this.v) / this.maxV * 0.8 + Math.abs(fwd) * 0.2), 0);
       this.th = wrap(this.th + turn * this.turnRate * dt);
-      this.tu = wrap(this.tu + tturn * 1.5 * dt);
+      this.tu = wrap(this.tu + tturn * 1.5 * dt - (active ? FL.touch.turret * 0.0065 : 0)); FL.touch.turret = 0;
+      if (this.timeLeft > 0 && active) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.lost = true; this.endT = 2.2; FL.hud.msg('Zeit abgelaufen: Einsatz abgebrochen!', C.red); } }
       if (active && FL.down('KeyW', 'KeyS')) this.tu = FL.lerp(this.tu, 0, 1 - Math.exp(-8 * dt));
       this.x += Math.sin(this.th) * this.v * dt; this.z += Math.cos(this.th) * this.v * dt;
       this.pushOut(this, 2.6);
@@ -409,7 +416,7 @@
     }
 
     updateEnemies(dt, active) {
-      const fx = this.fx, rate = (1 + 0.1 * this.tier) * (this.diff / 0.85);
+      const fx = this.fx, rate = (1 + 0.1 * this.tier) * (this.diff / 0.85) * (1 + 0.35 * this.pw);
       const fire = (x, z, y) => {
         const d = Math.hypot(this.x - x, this.z - z), T = d / 55;
         // etwas vorhalten, aber nicht perfekt: Wer in Bewegung bleibt, wird seltener getroffen
@@ -471,9 +478,10 @@
       H.set(this.hTL, `<div class="hud-big"><span class="coins">${this.coins}</span></div>` +
         `<div>Panzerung</div>${H.meter(hp, hp < 0.35 ? 'red' : hp < 0.65 ? 'gold' : '')}` +
         `<div>Kanone ${this.cd <= 0 ? '<b style="color:#46dcff">bereit</b>' : 'lädt …'}</div>${H.meter(1 - Math.max(0, this.cd) / this.reload, 'cyan')}`);
-      let tc = `<div>Ziele: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
+      let tc = `<div>${this.goal === 'tanks' ? 'Panzer' : 'Ziele'}: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
+      if (this.timeLeft > 0) tc += `<div>Zeit <b style="color:${this.timeLeft < 30 ? '#ef5a4c' : '#46dcff'}">${Math.floor(this.timeLeft / 60)}:${String(Math.floor(this.timeLeft % 60)).padStart(2, '0')}</b></div>`;
       const ath = this.th + this.tu;
-      const next = this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
+      const next = this.goal === 'tanks' ? this.tanks.filter(e => !e.dead).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0] : this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
       if (next) tc += `<div>Nächstes Ziel ${FL.arrowHtml(FL.bearing(this.x, this.z, ath, next.x, next.z), Math.hypot(next.x - this.x, next.z - this.z))}</div>`;
       H.set(this.hTC, tc);
       let tr = '';

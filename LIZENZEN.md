@@ -15,6 +15,16 @@ Die Fahrzeuge und Flugzeuge stammen von Sketchfab. Für das Spiel wurden sie ver
 
 Wichtig: Der Eurofighter darf nur nicht-kommerziell genutzt werden. Für das kostenlose Spiel ist das in Ordnung. Vor einer bezahlten Veröffentlichung (zum Beispiel im App Store) muss er gegen ein anderes Modell getauscht werden. Die verkleinerte Fassung in `models/jet.js` steht wie das Original unter CC BY-NC-SA 4.0.
 
+## Geräusche
+
+Triebwerk, Nachbrenner, Panzermotor und Kanonenschüsse sind Aufnahmen von Pixabay (Pixabay-Inhaltslizenz: frei nutzbar, auch ohne Namensnennung). Sie wurden gekürzt und zu Schleifen geschnitten und stecken in `sounds/pack.js`.
+
+- „Tank moving“ von dennish18
+- „Distant tank shots“ und „Propulsion jet engine“ von freesound_community
+- „Fighter jet taking off“ von spinopel
+
+Alle anderen Töne erzeugt das Spiel selbst.
+
 ## Programme
 
 - [three.js](https://threejs.org) mit GLTFLoader, MIT-Lizenz, siehe `lib/three-LICENSE.txt`.

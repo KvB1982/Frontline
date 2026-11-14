@@ -209,3 +209,10 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 .tthr b { position: absolute; left: 5px; right: 5px; height: 28px; margin-bottom: 0; border-radius: 9px; background: linear-gradient(#fff, #9fb0bd); border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5); transform: translateY(50%); }
 .tthr.ab { border-color: var(--orange); } .tthr.ab i { background: var(--orange); } .tthr.ab b { background: linear-gradient(#ffd9a0, #ff8c3c); }
 .tthr em { position: absolute; left: 86px; bottom: 6px; white-space: nowrap; font-style: normal; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; }
+
+.briefing h3 { margin: 12px 0 2px; color: var(--gold); font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; }
+.briefing p { margin: 2px 0 6px; }
+
+.menu-buttons .pair { display: flex; gap: 12px; }
+.menu-buttons .pair .btn { flex: 1; font-size: 18px; padding: 10px 14px; }
+@media (max-height: 800px) { .menu-buttons { gap: 9px; } .menu-buttons .btn { padding: 10px 18px; font-size: 20px; } }

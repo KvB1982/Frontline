@@ -49,6 +49,10 @@
     constructor(cfg, lo) {
       this.cfg = cfg; this.lo = lo; this.result = null;
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
+      // sc = Besonderheiten eines Sondereinsatzes, pw = wie stark das eigene Flugzeug ausgebaut ist (0 bis 1): Der Gegner hält dagegen
+      const sc = this.sc = cfg.sc || {};
+      this.pw = (lo.p_armor + lo.p_gun + lo.p_bomb + lo.p_engine + lo.p_rocket * 1.5) / 15;
+      this.goal = sc.goal || 'targets'; this.jetKills = 0; this.timeLeft = sc.time || 0; this.goAround = 0;
       const st = this.stage = new FL.Stage(cfg.theme, { far: 2600, shadow: 230, fov: 60, fogNear: 350, fogFar: 2300 });
       this.fx = new FL.FX(st);
       this.t = 0; this.kills = 0; this.coins = 0; this.endT = -1; this.lost = false;
@@ -59,8 +63,8 @@
       this.walkCam = Math.atan2(PARK.x - DOOR.x, PARK.z - DOOR.z);
       this.turnRate = 0.85 + 0.17 * lo.p_engine;
       this.hpMax = this.hp = 10 + 3 * lo.p_armor;
-      this.fuelMax = this.fuel = 210 + 40 * lo.p_engine + 15 * this.tier;
-      this.gunCd = 0; this.bombCd = 0; this.rocketCd = 0; this.shake = 0; this.warnT = 0; this.invuln = 0; this.smokeT = 0; this.jetCd = 25;
+      this.fuelMax = this.fuel = (210 + 40 * lo.p_engine + 15 * this.tier) * (sc.fuel || 1);
+      this.gunCd = 0; this.bombCd = 0; this.rocketCd = 0; this.shake = 0; this.warnT = 0; this.invuln = 0; this.smokeT = 0; this.jetCd = sc.jets ? 9 : 25;
       this.bullets = []; this.bombs = []; this.rockets = []; this.flakShots = []; this.ebullets = []; this.jets = [];
       this.structures = []; this.spinners = []; this.burning = [];
       this.buildWorld();
@@ -116,7 +120,7 @@
         lineup: 'Das Flugzeug richtet sich aus …',
         takeoff: '↑ halten = Vollgas · Umschalt = Nachbrenner · bei genug Tempo ↓ ziehen = abheben',
         flight: 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · Umschalt Nachbrenner',
-        landing: 'Die Landehilfe bringt dich sicher herunter · G Fahrwerk ausfahren',
+        landing: 'Aufgesetzt: Das Flugzeug bremst und rollt aus',
         taxiback: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum Parkplatz (blauer Kreis)',
         parked: 'Motor aus …',
         walkback: '← → ↑ ↓ laufen · Geh ins Basisgebäude (blauer Kreis)'
@@ -133,7 +137,7 @@
 
     // ---------------------------------------------------------------- Aufbau
     buildWorld() {
-      const th = this.cfg.theme, st = this.stage, tier = this.tier, rnd = FL.seeded(71 + Math.round(tier * 10) + th.length * 3);
+      const th = this.cfg.theme, st = this.stage, tier = this.tier, sc = this.sc, rnd = FL.seeded(71 + Math.round(tier * 10) + th.length * 3 + (sc.seed || 0));
       st.ground(9000, FL.tex.fields(th), 420);
       st.add(st.strip(13, 2400, FL.tex.road(th), 13, 12, 0, 0, 0.08));
       const cross = st.strip(13, 1800, FL.tex.road(th), 13, 12, 0, 40, 0.1); cross.rotation.z = Math.PI / 2; st.add(cross);
@@ -151,8 +155,9 @@
       if (tier >= 3) prim.push('hq', 'hangar');
       if (tier >= 4) prim.push('radar', 'bunker');
       if (airfield) prim.push('tower');
-      const flakPrim = th === 'daemmerung';
-      const nFlak = 2 + Math.round(tier * 1.1);
+      if (sc.prim) { prim.length = 0; prim.push(...sc.prim); }
+      const flakPrim = sc.flakPrim !== undefined ? sc.flakPrim : th === 'daemmerung';
+      const nFlak = 2 + Math.round(tier * 1.1) + (sc.flak || 0) + Math.round(2 * this.pw);
       const R = 190 + 22 * tier;
       const add = (kind, primary, rMin, rMax, opt) => {
         // aus der Luft wären die Gebäude sonst sehr klein, deshalb etwas größer
@@ -164,7 +169,7 @@
         mesh.rotation.y = Math.floor(rnd() * 4) * Math.PI / 2;
         st.add(mesh);
         if (u.spin) this.spinners.push(u.spin);
-        const hp = Math.min(u.hp, 22) * (1.1 + 0.3 * tier);
+        const hp = Math.min(u.hp, 22) * (1.1 + 0.3 * tier) * (1 + 0.7 * this.pw);
         const s = { kind, x: p[0], z: p[1], r: u.r, h: u.h, hp, max: hp, mesh, alive: true, primary, cd: FL.rand(1, 3) };
         if (primary) {
           s.marker = FL.sprite(FL.tex.icon('target'), 10, { depthTest: false, fog: false });
@@ -180,7 +185,7 @@
       if (th === 'industrie' || th === 'winter') add('chimney', false, 30, R);
       this.buildBase(th);
       this.flak = this.structures.filter(s => s.kind === 'flak');
-      this.nPrimary = this.structures.filter(s => s.primary).length;
+      this.nPrimary = this.goal === 'jets' ? sc.jets.need : this.structures.filter(s => s.primary).length;
 
       // Bäume rundherum (ohne Schatten, damit es flüssig läuft)
       for (let i = 0; i < 520; i++) {
@@ -246,7 +251,18 @@
     }
 
     // ---------------------------------------------------------------- Treffer
-    left() { return this.structures.filter(s => s.alive && s.primary).length; }
+    left() { return this.goal === 'jets' ? Math.max(0, this.sc.jets.need - this.jetKills) : this.structures.filter(s => s.alive && s.primary).length; }
+    // ein Ziel weniger: Sind alle erledigt, geht es zurück zur Basis
+    scored(word) {
+      if (this.rtb) return;
+      const n = this.left();
+      if (n === 0) {
+        this.rtb = true; FL.audio.play('up');
+        FL.hud.msg(this.goal === 'jets' ? 'ALLE JÄGER ABGESCHOSSEN!' : 'ALLE ZIELE ZERSTÖRT!', C.gold); FL.hud.msg('Flieg zurück zur Basis und lande selbst', C.cyan, true);
+        for (const m of this.apMarks) m.visible = true;
+      }
+      else FL.hud.msg(word + ' Noch ' + n, C.orange, true);
+    }
     hitStructure(s, d) {
       if (!s.alive) return;
       s.hp -= d;
@@ -263,13 +279,7 @@
       this.burning.push({ x: s.x, z: s.z, t: 40, size: Math.max(5, s.r) });
       this.kills++; this.coins += s.primary ? 15 : s.kind === 'flak' ? 8 : 3;
       if (s.primary) {
-        const n = this.left();
-        if (n === 0) {
-          this.rtb = true; FL.audio.play('up');
-          FL.hud.msg('ALLE ZIELE ZERSTÖRT!', C.gold); FL.hud.msg('Flieg zurück zur Basis und lande', C.cyan, true);
-          for (const m of this.apMarks) m.visible = true;
-        }
-        else FL.hud.msg('Ziel zerstört! Noch ' + n, C.orange, true);
+        this.scored('Ziel zerstört!');
       } else if (s.kind === 'flak') FL.hud.msg('Flak ausgeschaltet!', C.green, true);
     }
     blast(x, y, z, radius, dmg) {
@@ -293,8 +303,8 @@
         for (let i = 0; i < 10; i++) this.fx.chunk(j.x, j.y, j.z, 2.5);
         FL.audio.play('boom');
         this.stage.scene.remove(j.mesh);
-        this.kills++; this.coins += 15;
-        FL.hud.msg('Jäger abgeschossen!', C.green, true);
+        this.kills++; this.coins += 15; this.jetKills++;
+        if (this.goal === 'jets') this.scored('Jäger abgeschossen!'); else FL.hud.msg('Jäger abgeschossen!', C.green, true);
       }
     }
     hurt(d) {
@@ -333,7 +343,28 @@
       // kurz nach dem Abheben steigt das Flugzeug von selbst auf sichere Höhe
       if (this.floor < 16) { this.floor = Math.min(16, this.floor + 8 * dt); climb = Math.max(climb, 0.75); }
       this.th = wrap(this.th + turn * this.turnRate * dt);
-      this.y = FL.clamp(this.y + climb * 30 * dt, this.lost ? 4 : this.floor, CEIL);
+      // Landen darf man nur im Anflug auf die eigene Bahn, sonst bleibt eine sichere Mindesthöhe
+      const canLand = this.rtb && !this.lost && this.goAround <= 0 && Math.abs(this.x - BX) < 70 && this.z > RZ0 - 750 && this.z < RZ1 + 750;
+      if (this.goAround > 0) { this.goAround -= dt; climb = Math.max(climb, 0.9); }
+      const fl = this.lost ? 4 : canLand ? GY : this.floor, y0 = this.y;
+      this.y = Math.min(CEIL, this.y + climb * 30 * dt);
+      if (this.y < fl) this.y = Math.min(fl, Math.max(this.y, y0) + 24 * dt);
+      if (canLand && this.y <= GY + 0.02 && this.endT < 0) {
+        const dir = Math.cos(this.th) > 0 ? 1 : -1, remain = dir > 0 ? RZ1 - this.z : this.z - RZ0;
+        const onRw = Math.abs(this.x - BX) < 15 && this.z > RZ0 && this.z < RZ1;
+        const straight = Math.abs(wrap(this.th - (dir > 0 ? 0 : Math.PI))) < 0.32;
+        if (onRw && straight && remain > 150) {
+          // sauber aufgesetzt: ausrollen
+          const sink = -climb * 30;
+          if (sink > 17 && this.gearDown) { this.hp = Math.max(1, this.hp - 2); FL.hud.damage(0.5); FL.hud.msg('Harte Landung!', C.orange, true); }
+          this.y = GY; this.landDir = dir; this.touched = false; this.v = this.speed; this.gearT = 0;
+          this.setPhase('landing');
+          for (const m of this.apMarks) m.visible = false;
+          this.updateBase(0.0001); return;
+        }
+        this.goAround = 1.6; FL.audio.play('alarm');
+        FL.hud.msg('Durchstarten!', C.red); FL.hud.msg(!onRw ? 'Du warst nicht über der Landebahn' : !straight ? 'Du warst schräg zur Landebahn' : 'Die Bahn reicht nicht mehr zum Ausrollen', C.text, true);
+      }
       // Schub: Schubhebel (Neigesteuerung) oder Umschalt-Taste für den Nachbrenner
       const thr = this.thr = this.lost ? 0.3 : this.throttle();
       this.ab = thr > 0.9 && !this.lost;
@@ -354,6 +385,10 @@
         this.fuel -= dt * (this.ab ? 2.2 : 1);
         if (this.fuel <= 0) { this.fuel = 0; this.lost = true; this.endT = 2.2; FL.hud.msg('Treibstoff leer: Rückflug!', C.red); }
         else if (this.fuel < 30 && Math.floor(this.fuel) % 10 === 0 && Math.floor(this.fuel + dt) !== Math.floor(this.fuel)) FL.hud.msg('Treibstoff wird knapp!', C.orange, true);
+        if (this.timeLeft > 0 && !this.lost) {
+          this.timeLeft -= dt;
+          if (this.timeLeft <= 0) { this.timeLeft = 0; this.lost = true; this.endT = 2.2; FL.hud.msg('Zeit abgelaufen: Einsatz abgebrochen!', C.red); }
+        }
       }
 
       // Zielpunkte am Boden: Bombe (Kreis) und Bordkanone (Punkt)
@@ -467,17 +502,8 @@
       this.updateFlak(dt, sin, cos, active && !this.rtb);
       this.updateJets(dt, active && !this.rtb);
 
-      // Heimflug: Wer den blauen Anflugpunkt in Richtung Landebahn überfliegt, bekommt die Landehilfe
+      // Heimflug: Die blauen Ringe zeigen, wo der Anflug auf die Landebahn beginnt. Gelandet wird selbst.
       if (this.rtb && active) {
-        for (const a of [AP_N, AP_S]) {
-          if (dist(this, a) > 150) continue;
-          if (Math.abs(wrap(this.th - a.th)) < 0.8) {
-            this.landDir = a.dir; this.touched = false; this.v = this.speed; this.gearT = 0;
-            this.setPhase('landing'); FL.hud.msg('Landeanflug!', C.cyan);
-            for (const m of this.apMarks) m.visible = false;
-          } else { this.warnT -= dt; if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Flieg in Richtung Landebahn durch den blauen Ring', C.text, true); } }
-          break;
-        }
         this.apMarks.forEach((m, i) => { const a = i ? AP_S : AP_N, sc = FL.clamp(dist(this, a) * 0.07, 24, 70); m.scale.set(sc, sc, 1); });
       }
 
@@ -675,7 +701,7 @@
         s.mesh.userData.gun.rotation.y = Math.atan2(this.x - s.x, this.z - s.z) - s.mesh.rotation.y;
         s.cd -= dt;
         if (s.cd > 0 || !active) continue;
-        s.cd = FL.rand(2.4, 3.6) / (1 + 0.07 * this.tier) * (0.85 / this.diff);
+        s.cd = FL.rand(2.4, 3.6) / (1 + 0.07 * this.tier) * (0.85 / this.diff) / (1 + 0.5 * this.pw);
         const T = 1.5, err = Math.max(18, 30 - 2.2 * this.tier);
         const tx = this.x + sin * this.speed * T + FL.rand(-err, err), ty = this.y + FL.rand(-err, err) * 0.5, tz = this.z + cos * this.speed * T + FL.rand(-err, err);
         const mesh = fx.shot(0xff8c3c, 0.5, 6);
@@ -701,12 +727,13 @@
     // feindliche Jäger ab den späteren Leveln
     updateJets(dt, active) {
       const fx = this.fx;
-      if (this.tier >= 2.5 && active) {
+      const sj = this.sc.jets;
+      if ((this.tier >= 2.5 || sj || (this.pw > 0.6 && this.tier >= 1.5)) && active) {
         this.jetCd -= dt;
-        if (this.jetCd <= 0 && this.jets.filter(j => !j.dead).length < (this.tier >= 4 ? 2 : 1)) {
-          this.jetCd = (30 - 3 * this.tier) * (0.85 / this.diff);
+        if (this.jetCd <= 0 && this.jets.filter(j => !j.dead).length < (sj ? sj.n : (this.tier >= 4 ? 2 : 1) + (this.pw > 0.8 ? 1 : 0))) {
+          this.jetCd = (sj ? sj.cd : 30 - 3 * this.tier) * (0.85 / this.diff) / (1 + 0.4 * this.pw);
           const a = this.th + FL.rand(-0.9, 0.9), d = 700;
-          const j = { x: this.x + Math.sin(a) * d, y: this.y + FL.rand(-8, 12), z: this.z + Math.cos(a) * d, th: a + Math.PI, hp: 4 + 1.5 * this.tier, cd: 1.5, brk: 0, vx: 0, vz: 0 };
+          const j = { x: this.x + Math.sin(a) * d, y: this.y + FL.rand(-8, 12), z: this.z + Math.cos(a) * d, th: a + Math.PI, hp: (4 + 1.5 * this.tier) * (1 + 0.8 * this.pw), cd: 1.5, brk: 0, vx: 0, vz: 0 };
           j.mesh = FL.jetModel(this.stage.theme.enemy, 0xb03020); j.mesh.rotation.order = 'YXZ'; this.stage.add(j.mesh);
           this.jets.push(j);
           FL.audio.play('alarm'); FL.hud.msg('Feindlicher Jäger!', C.red, true);
@@ -763,8 +790,9 @@
         `<div>Treibstoff</div>${H.meter(fuel, fuel < 0.2 ? 'red' : 'cyan')}` +
         `<div>Höhe ${Math.round(Math.max(0, this.y - GY) * 10)} m</div>` +
         (this.phase === 'flight' || this.phase === 'landing' || this.phase === 'takeoff' ? `<div>Schub ${this.ab ? '<b style="color:#ff8c3c">NACHBRENNER</b>' : Math.round(Math.min(1, (this.thr || 0) / 0.9) * 100) + ' %'} · Fahrwerk ${this.gearDown ? '<b style="color:#46dcff">aus</b>' : 'ein'}</div>` : ''));
-      let tc = `<div>Ziele: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
-      const next = this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
+      let tc = `<div>${this.goal === 'jets' ? 'Jäger' : 'Ziele'}: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
+      if (this.timeLeft > 0) tc += `<div>Zeit <b style="color:${this.timeLeft < 30 ? '#ef5a4c' : '#46dcff'}">${Math.floor(this.timeLeft / 60)}:${String(Math.floor(this.timeLeft % 60)).padStart(2, '0')}</b></div>`;
+      const next = this.goal === 'jets' ? this.jets.filter(j => !j.dead)[0] : this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
       const ph = this.phase, walking = ph === 'walk' || ph === 'walkback';
       const me = walking ? this.hero : this, myTh = walking ? this.walkCam : this.th;
       const to = (label, g) => `<div>${label} ${FL.arrowHtml(FL.bearing(me.x, me.z, myTh, g.x, g.z), dist(me, g))}</div>`;
@@ -776,7 +804,17 @@
       else if (ph === 'taxiback') tc = to('Zum Parkplatz', PARK);
       else if (ph === 'parked') tc = '<div>Geparkt</div>';
       else if (ph === 'walkback') tc = to('Zum Basisgebäude', DOOR);
-      else if (this.rtb) { const a = dist(this, AP_N) < dist(this, AP_S) ? AP_N : AP_S; tc = '<div style="color:#5fd07a"><b>Alle Ziele zerstört</b></div>' + to('Landeanflug', a); }
+      else if (this.rtb) {
+        const a = dist(this, AP_N) < dist(this, AP_S) ? AP_N : AP_S, thr = a === AP_S ? { x: BX, z: RZ0 + 25 } : { x: BX, z: RZ1 - 25 };
+        const inLine = Math.abs(this.x - BX) < 70 && Math.abs(wrap(this.th - a.th)) < 0.6, dT = dist(this, thr);
+        tc = '<div style="color:#5fd07a"><b>' + (this.goal === 'jets' ? 'Alle Jäger abgeschossen' : 'Alle Ziele zerstört') + '</b></div>';
+        if (!inLine) tc += to('Zum Landeanflug', a);
+        else {
+          const want = dT * 0.11, h = this.y - GY;
+          tc += `<div>Landebahn ${Math.round(dT)} m · ${h > want + 9 ? '<b style="color:#ff8c3c">zu hoch: sinken</b>' : h < want - 9 && dT > 60 ? '<b style="color:#ff8c3c">zu tief: halten</b>' : '<b style="color:#5fd07a">Höhe gut</b>'}</div>` +
+            `<div>${this.gearDown ? 'Fahrwerk ist aus' : '<b style="color:#ef5a4c">Fahrwerk ausfahren!</b>'}</div>`;
+        }
+      }
       else if (next) tc += to('Nächstes Ziel', next);
       H.set(this.hTC, tc);
       let tr = `<div class="slot ${this.bombCd <= 0 ? 'ready' : ''}"><b>B</b>Bombe ${this.bombCd <= 0 ? 'bereit' : 'lädt'}</div>`;
@@ -788,7 +826,7 @@
       items.push({ x: BX, z: (RZ0 + RZ1) / 2, color: '#5fd07a', size: 5, far: true });
       if (this.rtb) for (const a of [AP_N, AP_S]) items.push({ x: a.x, z: a.z, color: '#46dcff', size: 4, far: true });
       const air = ph === 'flight' || ph === 'landing';
-      this.hInfo.style.display = ph === 'flight' ? '' : 'none';
+      this.hInfo.style.display = ph === 'flight' && !this.rtb ? '' : 'none';
       FL.drawMinimap(this.map, me.x, me.z, myTh, air ? 520 : 120, items);
     }
 

@@ -3,7 +3,7 @@
 (() => {
   const A = FL.app = { mode: null, backdrop: null, paused: false, done: false, ctx: null, last: 0 };
   const screen = () => document.getElementById('screen');
-  const DIFFS = [{ name: 'Leicht', v: 0.7 }, { name: 'Normal', v: 0.85 }, { name: 'Schwer', v: 1.05 }];
+  const DIFFS = [{ name: 'Leicht', v: 0.7 }, { name: 'Normal', v: 0.85 }, { name: 'Schwer', v: 1.05 }, { name: 'Sehr schwer', v: 1.3 }, { name: 'Extrem', v: 1.6 }];
   const KINDS = ['attack', 'defend', 'flight', 'tank'];
   const SHORT = { attack: 'Angriff', defend: 'Verteidigung', flight: 'Kampfflugzeug', tank: 'Panzer' };
 
@@ -86,13 +86,15 @@
     const done = FL.save.level >= FL.CAREER.length;
     btn(box, `Karriere<small>${done ? 'Alle Einsätze geschafft' : 'Einsatz ' + (FL.save.level + 1) + ' von ' + FL.CAREER.length} · ${FL.save.coins} Münzen</small>`, 'primary', careerPage);
     btn(box, 'Laden<small>Waffen, Ausrüstung, Unterstützung, Basis, Flugzeug, Panzer</small>', '', () => shopPage(mainMenu, 'Menü'));
+    btn(box, 'Sondereinsätze<small>16 Szenarien für Kampfflugzeug und Panzer, jedes mit Briefing</small>', '', scenarioPage);
     btn(box, 'Freies Spiel<small>Alles selbst einstellen und sofort spielen</small>', '', manualPage);
-    const mute = btn(box, '', '', () => { FL.save.muted = !FL.save.muted; FL.store(); label(); });
-    const label = () => { mute.innerHTML = `Ton: ${FL.save.muted ? 'aus' : 'an'}<small>Taste M schaltet den Ton jederzeit um</small>`; };
+    const pair = FL.el('div', 'pair', '', box);
+    const mute = btn(pair, '', '', () => { FL.save.muted = !FL.save.muted; FL.store(); label(); });
+    const label = () => { mute.innerHTML = `Ton: ${FL.save.muted ? 'aus' : 'an'}<small>Taste M</small>`; };
     label();
     const GFX = ['auto', 'schön', 'mittel', 'schnell'];
-    const gfx = btn(box, '', '', () => { FL.save.gfx = GFX[(GFX.indexOf(FL.save.gfx || 'auto') + 1) % GFX.length]; FL.store(); applyGfx(); glabel(); });
-    const glabel = () => { gfx.innerHTML = `Grafik: ${FL.save.gfx || 'auto'}<small>Wenn das Spiel ruckelt: „schnell“ wählen</small>`; };
+    const gfx = btn(pair, '', '', () => { FL.save.gfx = GFX[(GFX.indexOf(FL.save.gfx || 'auto') + 1) % GFX.length]; FL.store(); applyGfx(); glabel(); });
+    const glabel = () => { gfx.innerHTML = `Grafik: ${FL.save.gfx || 'auto'}<small>bei Ruckeln: „schnell“</small>`; };
     glabel();
     FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
     FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) und bohmerang (CC BY-NC-SA) · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
@@ -142,6 +144,46 @@
     P.foot.insertBefore(reset, start);
     const prev = FL.onKey;
     FL.onKey = code => { if (code === 'Enter') start.click(); else prev(code); };
+  };
+
+  // ---------------------------------------------------------------- Sondereinsätze mit Briefing
+  const scenarioCfg = S => ({ kind: S.kind, theme: S.theme, tier: S.tier, diff: Math.min(0.95, 0.74 + 0.04 * S.tier), sc: S.sc, towersOn: true });
+  let scTab = 'flight';
+  const scenarioPage = () => {
+    if (!A.backdrop || A.mode) toMenus();
+    FL.save.sc = FL.save.sc || {};
+    const P = page('Sondereinsätze', mainMenu, 'Menü');
+    coinsEl(P.head);
+    btn(P.head, 'Laden', '', () => shopPage(scenarioPage, 'Sondereinsätze'));
+    const tabs = FL.el('div', 'tabs', '', P.body), grid = FL.el('div', 'levels', '', P.body);
+    FL.el('div', 'hint', 'Alle Sondereinsätze sind von Anfang an offen. Du spielst mit der Ausrüstung aus deiner Karriere.', P.foot);
+    const draw = () => {
+      tabs.innerHTML = ''; grid.innerHTML = '';
+      for (const [k, name] of [['flight', 'Kampfflugzeug'], ['tank', 'Panzer']]) {
+        const t = FL.el('button', 'tab' + (k === scTab ? ' on' : ''), name, tabs);
+        t.type = 'button';
+        t.addEventListener('click', () => { FL.audio.play('click'); scTab = k; draw(); });
+      }
+      FL.SCENARIOS.filter(S => S.kind === scTab).forEach((S, i) => {
+        const done = !!FL.save.sc[S.id];
+        const c = FL.el('button', 'level ' + (done ? 'done' : 'next'), `<span class="nr">${done ? 'geschafft' : 'Einsatz ' + (i + 1)}</span><span class="name">${S.name}</span><span class="kind">${FL.THEMES[S.theme].name} · Stärke ${Math.round(S.tier * 2 + 1)}</span><span class="reward"><span class="coins">${done ? Math.round(S.reward * 0.4) : S.reward}</span></span>`, grid);
+        c.type = 'button';
+        c.addEventListener('click', () => { FL.audio.play('click'); briefingPage(S); });
+      });
+    };
+    draw();
+  };
+  const briefingPage = S => {
+    const P = page('Briefing: ' + S.name, scenarioPage, 'Sondereinsätze');
+    const done = !!(FL.save.sc && FL.save.sc[S.id]);
+    const b = FL.el('div', 'panel brief briefing', '', P.body);
+    b.innerHTML = `<div class="muted">${FL.KIND_NAMES[S.kind]} · ${FL.THEMES[S.theme].name} · Stärke ${Math.round(S.tier * 2 + 1)} von 11</div>` +
+      `<h3>Lage</h3><p>${S.lage}</p><h3>Dein Auftrag</h3><p>${S.auftrag}</p><h3>Gefahren</h3><p>${S.gefahr}</p><h3>Tipp</h3><p>${S.tipp}</p>` +
+      (S.kind === 'flight' ? '<p class="muted">Ablauf: zum Flugzeug laufen, zur Startbahn rollen, starten, Auftrag erfüllen, zurückfliegen und selbst landen.</p>' : '') +
+      `<p>Prämie: <span class="coins">${done ? Math.round(S.reward * 0.4) : S.reward}</span>${done ? ' <span class="muted">(schon geschafft, deshalb weniger)</span>' : ''} und dazu Münzen für jeden Treffer.</p>`;
+    const go = btn(P.foot, 'Einsatz starten', 'primary', () => launch(scenarioCfg(S), FL.loadout(FL.save.up), { type: 'scenario', id: S.id }));
+    const prev = FL.onKey;
+    FL.onKey = code => { if (code === 'Enter') go.click(); else prev(code); };
   };
 
   // ---------------------------------------------------------------- Laden
@@ -203,7 +245,7 @@
     stepper(opts, 'Art des Einsatzes', () => FL.KIND_NAMES[m.kind], d => { m.kind = cycle(KINDS, m.kind, d); });
     stepper(opts, 'Landschaft', () => FL.THEMES[m.theme].name, d => { m.theme = cycle(FL.THEME_KEYS, m.theme, d); });
     stepper(opts, 'Stärke der Gegner', () => 'Stufe ' + (m.tier * 2 + 1) + ' von 11', d => { m.tier = FL.clamp(m.tier + d * 0.5, 0, 5); });
-    stepper(opts, 'Schwierigkeit', () => DIFFS[m.diff].name, d => { m.diff = FL.clamp(m.diff + d, 0, 2); });
+    stepper(opts, 'Schwierigkeit', () => DIFFS[m.diff].name, d => { m.diff = FL.clamp(m.diff + d, 0, DIFFS.length - 1); });
     stepper(opts, 'Länge', () => m.kind === 'attack' ? m.sections + ' Abschnitte' : m.kind === 'defend' ? m.waves + ' Wellen' : 'fest',
       d => { if (m.kind === 'attack') m.sections = FL.clamp(m.sections + d, 1, 5); else if (m.kind === 'defend') m.waves = FL.clamp(m.waves + d, 1, 8); });
     stepper(opts, 'Geschütze', () => m.towersOn ? 'an' : 'aus', () => { m.towersOn = !m.towersOn; });
@@ -258,7 +300,7 @@
     }));
   };
   A.launch = launch;
-  const leave = () => fade(() => { toMenus(); if (A.ctx.ctx.type === 'career') careerPage(); else manualPage(); });
+  const leave = () => fade(() => { toMenus(); const t = A.ctx.ctx.type; if (t === 'career') careerPage(); else if (t === 'scenario') scenarioPage(); else manualPage(); });
   const setPause = on => {
     if (!A.mode || A.done) return;
     A.paused = on;
@@ -293,6 +335,21 @@
       if (win) btn(box, 'Weiter', 'primary', leave); else btn(box, 'Nochmal versuchen', 'primary', () => launch(careerCfg(c.index), FL.loadout(FL.save.up), c));
       btn(box, 'Zum Laden', '', () => fade(() => { toMenus(); shopPage(careerPage, 'Karriere'); }));
       if (!win) btn(box, 'Zur Karriere', '', leave);
+    } else if (c.type === 'scenario') {
+      const S = FL.SCENARIOS.find(x => x.id === c.id);
+      FL.save.sc = FL.save.sc || {};
+      const first = !FL.save.sc[S.id];
+      const reward = win ? (first ? S.reward : Math.round(S.reward * 0.4)) : 0, bonus = win ? mode.coins : Math.round(mode.coins * 0.5);
+      FL.save.coins += reward + bonus;
+      if (win) FL.save.sc[S.id] = true;
+      FL.store();
+      FL.el('div', 'big', win ? S.name + ' ist geschafft!' : 'Der Auftrag ist gescheitert. Versuch es gleich nochmal!', box);
+      FL.el('table', '', `<tr><td>Prämie</td><td><span class="coins">${reward}</span></td></tr>` +
+        `<tr><td>${win ? 'Münzen für Treffer' : 'Trostpreis für Treffer'}</td><td><span class="coins">${bonus}</span></td></tr>` +
+        `<tr><td><b>Dein Konto</b></td><td><b><span class="coins">${FL.save.coins}</span></b></td></tr>`, box);
+      if (win) btn(box, 'Weiter', 'primary', leave); else btn(box, 'Nochmal versuchen', 'primary', retry);
+      btn(box, 'Zum Laden', '', () => fade(() => { toMenus(); shopPage(scenarioPage, 'Sondereinsätze'); }));
+      if (!win) btn(box, 'Zu den Sondereinsätzen', '', leave);
     } else {
       FL.el('div', 'big', win ? 'Einsatz gewonnen!' : 'Diesmal hat der Gegner gewonnen.', box);
       FL.el('div', 'muted', `${mode.kills} Treffer · im freien Spiel gibt es keine Münzen`, box);

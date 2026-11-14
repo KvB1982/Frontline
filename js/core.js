@@ -61,7 +61,7 @@ FL.down = (...codes) => codes.some(c => FL.keys[c]);
 
 // ---------------------------------------------------------------- Töne (im Browser erzeugt, keine Dateien nötig)
 FL.audio = {
-  ctx: null, noise: null, out: null, last: {}, eng: {},
+  ctx: null, noise: null, out: null, last: {}, eng: {}, buf: {},
   unlock() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try {
@@ -81,7 +81,37 @@ FL.audio = {
         const now = performance.now();
         for (const k in this.eng) { const e = this.eng[k]; if (e.live && (now - e.t > 220 || FL.save.muted)) { e.live = false; e.main.gain.setTargetAtTime(0, c.currentTime, 0.12); } }
       }, 100);
+      this.loadSamples();
     } catch (e) { this.ctx = null; }
+  },
+  // aufgenommene Geräusche aus sounds/pack.js nachladen. Fehlt die Datei, bleiben die erzeugten Töne.
+  loadSamples() {
+    const s = document.createElement('script');
+    s.src = 'sounds/pack.js';
+    s.onload = () => {
+      const all = FL.SND || {};
+      for (const name in all) {
+        try {
+          const bin = atob(all[name]), u = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+          const done = b => { this.buf[name] = b; };
+          const p = this.ctx.decodeAudioData(u.buffer, done, () => {});
+          if (p && p.catch) p.catch(() => {});
+        } catch (e) { /* dieser Ton bleibt erzeugt */ }
+      }
+      FL.SND = null;
+    };
+    s.onerror = () => {};
+    document.head.appendChild(s);
+  },
+  // spielt eine Aufnahme ab, falls sie geladen ist
+  sample(name, vol, rate) {
+    const b = this.buf[name];
+    if (!b) return false;
+    const c = this.ctx, s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b; s.playbackRate.value = rate || 1; g.gain.value = vol;
+    s.connect(g); g.connect(this.out); s.start();
+    return true;
   },
   tone(f, dur, type, vol, slide, delay) {
     const c = this.ctx, t = c.currentTime + (delay || 0);
@@ -112,6 +142,30 @@ FL.audio = {
     const c = this.ctx;
     if (!c || FL.save.muted) return;
     let e = this.eng[kind];
+    // mit Aufnahme: eine Endlosschleife, deren Tonhöhe und Lautstärke dem Schub folgen
+    const loopName = kind === 'jet' ? 'jetloop' : 'tankloop';
+    if ((!e || !e.rec) && this.buf[loopName]) {
+      if (e) { try { e.main.disconnect(); } catch (err) {} }
+      e = this.eng[kind] = { live: false, t: 0, rec: true };
+      e.main = c.createGain(); e.main.gain.value = 0; e.main.connect(this.out);
+      const lp = name => {
+        const s = c.createBufferSource(), g = c.createGain(), b = this.buf[name];
+        s.buffer = b; s.loop = true; s.loopStart = 0.05; s.loopEnd = b.duration - 0.07; g.gain.value = 0;
+        s.connect(g); g.connect(e.main); s.start(0, 0.05);
+        return { s, g };
+      };
+      e.a = lp(loopName);
+      if (kind === 'jet' && this.buf.abloop) e.b = lp('abloop');
+    }
+    if (e && e.rec) {
+      const t = c.currentTime, set = (p, v) => p.setTargetAtTime(v, t, 0.12);
+      level = FL.clamp(level, 0, 1); ab = ab || 0;
+      if (kind === 'jet') { set(e.a.s.playbackRate, 0.72 + 0.5 * level); set(e.a.g.gain, 0.16 + 0.5 * level); if (e.b) { set(e.b.g.gain, ab * 0.9); set(e.b.s.playbackRate, 0.95); } }
+      else { set(e.a.s.playbackRate, 0.8 + 0.45 * level); set(e.a.g.gain, 0.28 + 0.45 * level); }
+      e.t = performance.now();
+      if (!e.live) { e.live = true; e.main.gain.setTargetAtTime(1, t, 0.15); }
+      return;
+    }
     if (!e) {
       e = this.eng[kind] = { live: false, t: 0 };
       const src = () => { const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; s.start(); return s; };
@@ -155,7 +209,8 @@ FL.audio = {
       case 'hit': B(0.05, 0.12, 3000, 2, 0, 'bandpass'); T(420, 0.05, 'square', 0.04, -150); break;
       case 'ouch': B(0.16, 0.3, 1400); T(180, 0.18, 'square', 0.1, -110); T(60, 0.2, 'sine', 0.25, -20); break;
       case 'pop': B(0.22, 0.2, 1200); T(110, 0.16, 'sine', 0.14, -50); break;
-      case 'cannon': B(0.06, 0.5, 6000, 1, 0, 'bandpass', 2500); B(0.55, 0.6, 1300); T(120, 0.3, 'sine', 0.45, -80); T(52, 0.55, 'sine', 0.35, -20); B(1.3, 0.12, 500, 0.7, 0.12); break;
+      case 'cannon': if (this.sample('shot' + (1 + Math.floor(Math.random() * 4)), 1.0, 0.92 + Math.random() * 0.16)) { B(0.05, 0.3, 6000, 1, 0, 'bandpass', 2500); T(60, 0.35, 'sine', 0.3, -25); break; }
+        B(0.06, 0.5, 6000, 1, 0, 'bandpass', 2500); B(0.55, 0.6, 1300); T(120, 0.3, 'sine', 0.45, -80); T(52, 0.55, 'sine', 0.35, -20); B(1.3, 0.12, 500, 0.7, 0.12); break;
       case 'boom': B(0.05, 0.4, 5000, 1, 0, 'bandpass', 2000); B(0.9, 0.7, 1000); T(78, 0.55, 'sine', 0.5, -45); B(1.8, 0.16, 380, 0.7, 0.18); B(0.3, 0.1, 3500, 3, 0.06, 'bandpass'); break;
       case 'bigboom': B(0.07, 0.5, 5000, 1, 0, 'bandpass', 1800); B(1.5, 0.85, 800); T(60, 1.0, 'sine', 0.6, -32); T(42, 1.3, 'sine', 0.4, -10, 0.18); B(2.6, 0.2, 320, 0.7, 0.25); B(0.5, 0.12, 3000, 3, 0.1, 'bandpass'); B(0.4, 0.1, 2400, 3, 0.45, 'bandpass'); break;
       case 'ping': T(1600, 0.06, 'triangle', 0.05, -500); break;

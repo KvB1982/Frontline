@@ -1,7 +1,7 @@
 'use strict';
 // Frontlinie 3 – Steuerung per Finger (iPad, Tablet, Handy). Die Knöpfe drücken einfach die passenden Tasten.
 (() => {
-  const T = FL.touch = { active: false, layer: null, held: new Map(), swipe: 0 };
+  const T = FL.touch = { active: false, layer: null, held: new Map(), swipe: 0, turret: 0 };
   // runder Steuerknüppel: x nach rechts, y nach vorn (oben), jeweils -1 bis 1
   FL.stick = { x: 0, y: 0 };
   // Schubhebel (nur bei Neigesteuerung im Flugzeug): v von 0 bis 1, über 0.9 zündet der Nachbrenner
@@ -254,6 +254,21 @@
         make(extra, 'Fahrwerk', 'KeyG', 'small cyan', TAP);
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
       } else {
+        // Wischen auf dem freien Bildschirm: links/rechts dreht den Turm, nach oben wischen stellt ihn geradeaus
+        const area = FL.el('div', 'tswipe', '');
+        L.insertBefore(area, L.firstChild);
+        let sw = null;
+        area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, mode: '' }; });
+        area.addEventListener('pointermove', e => {
+          if (!sw || e.pointerId !== sw.id) return;
+          const dx = e.clientX - sw.x0, dy = e.clientY - sw.y0;
+          if (!sw.mode && Math.hypot(dx, dy) > 22) sw.mode = dy < 0 && -dy > Math.abs(dx) * 1.4 ? 'up' : 'turn';
+          if (sw.mode === 'turn') T.turret += e.clientX - sw.x;
+          else if (sw.mode === 'up' && dy < -50) { sw.mode = 'done'; press('KeyW'); setTimeout(() => release('KeyW'), 900); if (navigator.vibrate) navigator.vibrate(10); }
+          sw.x = e.clientX;
+        });
+        const endW = e => { if (sw && e.pointerId === sw.id) sw = null; };
+        area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
         make(extra, 'Turm ◀', 'KeyA', 'small'); make(extra, 'Mitte', 'KeyW', 'small'); make(extra, 'Turm ▶', 'KeyD', 'small');
         FL.SPECIALS.forEach((sp, i) => { if (lo[sp.id]) make(extra, sp.key, 'Digit' + sp.key, 'small orange', TAP); });
       }
@@ -262,7 +277,7 @@
   T.hide = () => {
     T.pending = null;
     if (T.endSwipe) { T.endSwipe(); T.endSwipe = null; }
-    T.swipe = 0;
+    T.swipe = 0; T.turret = 0;
     FL.tilt.onChange = null; FL.tilt.dot = null;
     FL.stick.x = FL.stick.y = 0;
     FL.throttle.on = false; FL.throttle.v = 0;
