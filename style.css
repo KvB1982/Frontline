@@ -176,3 +176,24 @@ body.touch .hud-tr { right: calc(10px + env(safe-area-inset-right)); }
 .tchip { padding: 10px 16px; border-radius: 999px; background: rgba(20, 30, 40, 0.6); border: 2px solid rgba(220, 235, 245, 0.45); color: #fff; font-weight: 700; font-size: 14px; }
 .tchip.on { border-color: var(--cyan); color: var(--cyan); }
 .tswipe { position: absolute; inset: 0; pointer-events: auto; touch-action: none; }
+
+/* ---------- Bomben-Kamera ---------- */
+.bombcam { position: absolute; left: 12px; top: 170px; width: min(30vw, 340px); aspect-ratio: 16 / 10; border: 2px solid var(--gold); border-radius: 8px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; overflow: hidden; }
+.bombcam::before { content: ""; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 1px solid rgba(255, 255, 255, 0.55); border-radius: 50%; }
+.bombcam span { position: absolute; left: 6px; top: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--gold); text-shadow: 0 1px 2px #000; }
+.bombcam b { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 22px; text-shadow: 0 2px 0 #000; }
+.bombcam.hit { border-color: var(--green); } .bombcam.hit b { color: var(--green); }
+.bombcam.miss { border-color: var(--muted); } .bombcam.miss b { color: var(--text); }
+body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); }
+
+/* runder Steuerknüppel */
+.tstick { pointer-events: auto; touch-action: none; position: relative; width: 210px; height: 210px; border-radius: 50%; background: radial-gradient(circle, rgba(20, 30, 40, 0.25) 0 45%, rgba(20, 30, 40, 0.55) 100%); border: 3px solid rgba(220, 235, 245, 0.45); }
+.tstick.on { border-color: #fff; }
+.tknob { position: absolute; left: 50%; top: 50%; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(150, 170, 185, 0.75)); border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45); pointer-events: none; }
+.tstick.on .tknob { background: radial-gradient(circle at 35% 30%, #fff, rgba(255, 196, 60, 0.9)); }
+.tchip { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.tchip.cal { border-color: var(--gold); color: var(--gold); padding: 12px 20px; font-size: 16px; }
+.tchip.flash { background: var(--gold); color: #000; }
+.tgauge { position: relative; width: 44px; height: 44px; border-radius: 8px; background: rgba(20, 30, 40, 0.6); border: 2px solid rgba(220, 235, 245, 0.45); }
+.tgauge::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
+.tgauge i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--cyan); }

@@ -124,17 +124,18 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 
 ## Tipps
 
-- Im Flugzeug zeigt der gelbe Kreis am Boden, wo die Bombe einschlägt. Wirf sie ab, wenn der Kreis über dem rot markierten Ziel liegt. Gegen die Flak hilft: Kurven fliegen und die Höhe wechseln.
+- Ein Flug-Einsatz beginnt in deiner Flugbasis: Bei Alarm läufst du zum Flugzeug (blauer Kreis), rollst zur Startbahn (↑ Gas, ↓ bremsen, ← → lenken), hältst ↑ für Vollgas und ziehst bei genug Tempo mit ↓ hoch. Sind alle Ziele zerstört, fliegst du zurück und in Richtung Landebahn durch einen der blauen Ringe. Dann landet die Landehilfe das Flugzeug. Danach rollst du zum Parkplatz und gehst ins Basisgebäude. Erst dann ist der Einsatz gewonnen.
+- Im Flugzeug zeigt der gelbe Kreis am Boden, wo die Bombe einschlägt. Wirf sie ab, wenn der Kreis über dem rot markierten Ziel liegt. Gegen die Flak hilft: Kurven fliegen und die Höhe wechseln. Bei jedem Abwurf zeigt die Bomben-Kamera links im Bild, wie die Bombe fällt und ob sie trifft.
 - Im Panzer rastet das rote Fadenkreuz auf ein Ziel ein, wenn du ungefähr in die Richtung zielst. Bleib in Bewegung, dann wirst du seltener getroffen. Kisten mit Schraubenschlüssel reparieren den Panzer.
 - Vor der gegnerischen Basis zielt dein Soldat von selbst auf das nächste Gebäude, wenn kein Gegner vor ihm steht.
 - Wenn das Spiel ruckelt: im Hauptmenü bei „Grafik“ auf „schnell“ stellen.
 
 ## Auf dem iPad spielen
 
-Auf dem iPad gibt es Knöpfe auf dem Bildschirm: links zum Bewegen oder Lenken, rechts zum Schießen und für alles andere. Das iPad quer halten.
+Auf dem iPad gibt es Knöpfe auf dem Bildschirm: links zum Bewegen oder Lenken, rechts zum Schießen und für alles andere. Im Flugzeug und im Panzer ist links ein runder Steuerknüppel, den du in jede Richtung ziehen kannst. Das iPad quer halten.
 
 Im Bodenkampf kannst du auch wischen: mit dem Finger nach links oder rechts ziehen bewegt deinen Trupp, nach unten wischen und halten ist Deckung. Die Pfeil-Knöpfe gehen weiterhin.
 
-Das Kampfflugzeug steuerst du auf dem iPad durch Neigen, wie mit einem Steuerknüppel: das iPad wie ein Lenkrad nach links oder rechts drehen für Kurven, die Oberkante zu dir ziehen für Nase hoch, von dir weg kippen für Nase runter. Beim ersten Flug fragt das iPad einmal, ob das Spiel den Bewegungssensor benutzen darf. Oben am Bildschirm kannst du mit „Neigen: an/aus“ auf die Pfeil-Knöpfe umschalten und mit „Mitte neu“ die Haltung festlegen, bei der das Flugzeug geradeaus fliegt.
+Das Kampfflugzeug kannst du in der Luft auch durch Neigen steuern, wie mit einem Steuerknüppel: das iPad wie ein Lenkrad nach links oder rechts drehen für Kurven, die Oberkante zu dir ziehen für Nase hoch, von dir weg kippen für Nase runter. Beim ersten Flug fragt das iPad einmal, ob das Spiel den Bewegungssensor benutzen darf. Unten in der Mitte schaltest du mit „Neigen: an/aus“ zwischen Neigen und Steuerknüppel um. Halte das iPad so, wie du bequem fliegen willst, und tippe auf „Kalibrieren“: Diese Haltung ist dann die Mitte, das Flugzeug fliegt geradeaus. Das geht jederzeit, auch mitten im Flug. Der kleine Punkt im Kästchen daneben zeigt, was die Neigung gerade steuert. Kurz vor dem Start kalibriert das Spiel einmal von selbst. Am Boden (laufen und rollen) steuerst du immer mit dem Steuerknüppel.
 
 Am iPad lässt sich die `index.html` nicht per Doppelklick starten. Das Spiel braucht eine Adresse im Internet (zum Beispiel über GitHub Pages). Diese Adresse einmal in Safari öffnen, dann auf „Teilen“ und „Zum Home-Bildschirm“ tippen. Danach hat das Spiel ein eigenes Icon, startet im Vollbild und läuft auch ohne Internet. Der Spielstand auf dem iPad ist getrennt von dem am PC.

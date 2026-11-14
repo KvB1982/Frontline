@@ -4,6 +4,12 @@
 (() => {
   const C = { gold: '#ffc43c', red: '#ef5a4c', green: '#5fd07a', cyan: '#46dcff', text: '#e9eef2', orange: '#ff8c3c', muted: '#9fb0bd' };
   const GRAV = 40;
+  // Die eigene Flugbasis liegt südlich vom Zielgebiet. Die Startbahn läuft von Süd (RZ0) nach Nord (RZ1).
+  const BX = -260, RZ0 = -1100, RZ1 = -680, GY = 1.7;
+  const PARK = { x: -312, z: -1078 }, DOOR = { x: -338, z: -1037 }, START = { x: BX, z: -1085 };
+  const AP_N = { x: BX, z: RZ1 + 220, th: Math.PI, dir: -1 }, AP_S = { x: BX, z: RZ0 - 220, th: 0, dir: 1 };
+  const MID = { x: -130, z: -450 }, MIDR = 1350;
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 
   // ---------------------------------------------------------------- Helfer für Flugzeug und Panzer
@@ -46,8 +52,10 @@
       const st = this.stage = new FL.Stage(cfg.theme, { far: 2600, shadow: 230, fov: 60, fogNear: 350, fogFar: 2300 });
       this.fx = new FL.FX(st);
       this.t = 0; this.kills = 0; this.coins = 0; this.endT = -1; this.lost = false;
-      this.x = 0; this.y = 46; this.z = -720; this.th = 0; this.camTh = 0; this.roll = 0; this.pitch = 0;
-      this.speed = 62;
+      this.x = PARK.x; this.y = GY; this.z = PARK.z; this.th = Math.PI / 2; this.camTh = this.th; this.roll = 0; this.pitch = 0;
+      this.speed = 62; this.v = 0; this.floor = 16;
+      this.phase = 'walk'; this.rtb = false; this.alarmT = 0; this.alarmN = 0; this.bview = null;
+      this.walkCam = Math.atan2(PARK.x - DOOR.x, PARK.z - DOOR.z);
       this.turnRate = 0.85 + 0.17 * lo.p_engine;
       this.hpMax = this.hp = 10 + 3 * lo.p_armor;
       this.fuelMax = this.fuel = 210 + 40 * lo.p_engine + 15 * this.tier;
@@ -61,11 +69,56 @@
       this.ring = this.groundMark('ring', 1);
       this.dot = this.groundMark('glow', 0.8);
       this.dot.material.color.set(0xff5a3c);
+      this.goalRing = this.groundMark('ring', 1);
+      this.goalRing.material = this.goalRing.material.clone(); this.goalRing.material.color.set(0x46dcff);
+      this.hero = { x: DOOR.x, z: DOOR.z, th: this.walkCam, mesh: FL.soldier({ team: 'hero', weapon: 0 }) };
+      st.add(this.hero.mesh);
+      this.apMarks = [AP_N, AP_S].map(a => { const m = FL.sprite(FL.tex.icon('ring'), 30, { depthTest: false, fog: false }); m.material.color.set(0x46dcff); m.position.set(a.x, 30, a.z); m.visible = false; st.add(m); return m; });
+      this.bcam = new THREE.PerspectiveCamera(48, 1.6, 0.5, 2600);
       this.buildHud();
-      FL.hud.msg('Zerstöre alle markierten Ziele!', C.gold);
-      FL.audio.play('jet');
+      this.setShadow(55);
+      FL.tilt.air = false;
+      FL.hud.msg('ALARM!', C.red); FL.hud.msg('Lauf zu deinem Flugzeug!', C.gold, true);
       this.place();
-      this.updateCamera(1);
+      this.updateBase(0);
+      // Die Bomben-Kamera wird als kleines zweites Bild über das Hauptbild gezeichnet.
+      st.render = () => {
+        const r = FL.renderer, W = window.innerWidth, H = window.innerHeight;
+        r.setScissorTest(false); r.setViewport(0, 0, W, H);
+        r.render(st.scene, st.camera);
+        if (!this.bview) return;
+        const q = this.camBox.getBoundingClientRect();
+        if (q.width < 10) return;
+        this.bcam.aspect = q.width / q.height; this.bcam.updateProjectionMatrix();
+        st.sky.position.copy(this.bcam.position);
+        r.setScissorTest(true); r.setScissor(q.left, H - q.bottom, q.width, q.height); r.setViewport(q.left, H - q.bottom, q.width, q.height);
+        r.render(st.scene, this.bcam);
+        r.setScissorTest(false); r.setViewport(0, 0, W, H);
+        st.sky.position.copy(st.camera.position);
+      };
+    }
+    setShadow(S) {
+      const c = this.stage.sun.shadow.camera;
+      if (c.right === S) return;
+      c.left = -S; c.right = S; c.top = S; c.bottom = -S; c.updateProjectionMatrix();
+    }
+    setPhase(ph) {
+      this.phase = ph;
+      const air = ph === 'flight' || ph === 'landing';
+      this.setShadow(air ? 230 : 55);
+      if (FL.tilt.air !== (ph === 'flight')) { FL.tilt.air = ph === 'flight'; if (FL.tilt.onChange) FL.tilt.onChange(); }
+      const H = {
+        walk: '← → ↑ ↓ laufen · Lauf zum Flugzeug (blauer Kreis)',
+        taxi: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum blauen Kreis auf der Startbahn',
+        lineup: 'Das Flugzeug richtet sich aus …',
+        takeoff: '↑ halten = Vollgas · bei genug Tempo ↓ ziehen = abheben',
+        flight: 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : ''),
+        landing: 'Die Landehilfe bringt dich sicher herunter',
+        taxiback: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum Parkplatz (blauer Kreis)',
+        parked: 'Motor aus …',
+        walkback: '← → ↑ ↓ laufen · Geh ins Basisgebäude (blauer Kreis)'
+      }[ph];
+      if (this.hint) this.hint.innerHTML = H + ' · P Pause';
     }
 
     groundMark(icon, opacity) {
@@ -122,6 +175,7 @@
       const deco = ['barracks', 'tent', 'house', 'barracks', 'tent', 'antenna', 'bunker', 'house'];
       for (let i = 0; i < 6 + Math.round(tier * 2); i++) add(deco[i % deco.length], false, 20, R + 40);
       if (th === 'industrie' || th === 'winter') add('chimney', false, 30, R);
+      this.buildBase(th);
       this.flak = this.structures.filter(s => s.kind === 'flak');
       this.nPrimary = this.structures.filter(s => s.primary).length;
 
@@ -131,6 +185,8 @@
         const x = Math.sin(a) * d, z = 30 + Math.cos(a) * d;
         if (Math.abs(x) < 12 || Math.abs(z - 40) < 12) continue;
         if (airfield && Math.abs(x - 120) < 30 && Math.abs(z - 20) < 300) continue;
+        if (x > -420 && x < -200 && z > RZ0 - 90 && z < RZ1 + 60) continue;          // eigene Flugbasis
+        if (Math.abs(x - BX) < 45 && z > RZ0 - 420 && z < RZ1 + 420) continue;       // Anflug frei halten
         const t = FL.tree(FL.pick(st.theme.trees), rnd);
         t.position.set(x, 0, z); t.scale.setScalar(1.5);
         st.add(FL.noShadow(t));
@@ -142,13 +198,48 @@
       }
     }
 
+    // Die eigene Flugbasis: Startbahn, Vorfeld, Basisgebäude, Hangar, Tower
+    buildBase(th) {
+      const st = this.stage, con = FL.tex.concrete('#74787b'), W = FL.basic(0xeeeeee);
+      // flach über dem Boden: polygonOffset verhindert Flimmern, wenn man knapp darüber steht
+      const flat = (m, n) => { m.material.polygonOffset = true; m.material.polygonOffsetFactor = -n; m.material.polygonOffsetUnits = -n * 4; return st.add(m); };
+      flat(st.strip(80, 76, FL.tex.concrete('#6a6e70'), 16, 19, -315, -1074, 0.16), 2);
+      flat(st.strip(30, RZ1 - RZ0, con, 15, 20, BX, (RZ0 + RZ1) / 2, 0.2), 3);
+      for (let z = RZ0 + 30; z < RZ1 - 20; z += 34) { const b = FL.box(0.9, 0.04, 16, W, BX, 0.27, z); b.castShadow = false; st.add(b); }
+      for (const z of [RZ0 + 8, RZ1 - 8]) for (let i = -3; i <= 3; i++) { if (!i) continue; const b = FL.box(2, 0.04, 10, W, BX + i * 3.6, 0.27, z); b.castShadow = false; st.add(b); }
+      // Anflugbefeuerung an beiden Enden
+      for (const [z0, d] of [[RZ0, -1], [RZ1, 1]]) for (let i = 1; i <= 6; i++) for (const sx of [-1, 1]) {
+        const l = FL.ball(0.7, FL.basic(i % 2 ? 0xffffff : 0xffc43c), BX + sx * 9, 0.6, z0 + d * i * 32, 6, 5); l.castShadow = false; st.add(l);
+      }
+      this.baseSolid = [];
+      const put = (kind, x, z, rot, r) => {
+        const b = FL.building(kind, th); b.position.set(x, 0, z); b.rotation.y = rot || 0; st.add(b);
+        if (b.userData.spin) this.spinners.push(b.userData.spin);
+        this.baseSolid.push({ x, z, r: r || b.userData.r });
+        return b;
+      };
+      put('hq', DOOR.x, -1029, 0, 7); put('hangar', -347, -1086, Math.PI / 2, 9); put('tower', -300, -1031); put('radar', -318, -1029);
+      put('barracks', -372, -1040, Math.PI / 2, 6); put('tent', -372, -1066);
+      for (const [x, z] of [[-340, -1104], [-306, -1104]]) {
+        const j = FL.jetModel(0x66788a, 0x2a6fd0); j.position.set(x, GY, z); j.rotation.y = Math.PI / 2; st.add(j);
+        this.baseSolid.push({ x, z, r: 5.5 });
+      }
+      for (const [x, z, r] of [[-330, -1040, 1.2], [-326, -1040.5, -0.6], [-296, -1060, 2.6]]) {
+        const a = FL.soldier({ team: 'ally', weapon: 1 }); a.position.set(x, 0, z); a.rotation.y = r; st.add(a);
+      }
+      const pole = FL.cyl(0.08, 0.08, 9, 5, FL.mat(0xcccccc), -327, 4.5, -1035); st.add(pole);
+      st.add(FL.box(2.4, 1.4, 0.06, FL.mat(0x2a6fd0), -325.8, 8.2, -1035));
+    }
+
     buildHud() {
       FL.hud.clear();
       this.hTL = FL.hud.box('hud-tl'); this.hTC = FL.hud.box('hud-tc'); this.hTR = FL.hud.box('hud-tr');
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
-      const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · P Pause';
+      this.hint = FL.hud.box('hud-bl');
+      this.camBox = FL.el('div', 'bombcam', '<span>BOMBEN-KAMERA</span><b></b>', FL.hud.root);
+      this.camBox.style.display = 'none';
+      this.setPhase(this.phase);
     }
 
     // ---------------------------------------------------------------- Treffer
@@ -170,19 +261,25 @@
       this.kills++; this.coins += s.primary ? 15 : s.kind === 'flak' ? 8 : 3;
       if (s.primary) {
         const n = this.left();
-        if (n === 0) { this.endT = 3; FL.hud.msg('ALLE ZIELE ZERSTÖRT!', C.gold); }
+        if (n === 0) {
+          this.rtb = true; FL.audio.play('up');
+          FL.hud.msg('ALLE ZIELE ZERSTÖRT!', C.gold); FL.hud.msg('Flieg zurück zur Basis und lande', C.cyan, true);
+          for (const m of this.apMarks) m.visible = true;
+        }
         else FL.hud.msg('Ziel zerstört! Noch ' + n, C.orange, true);
       } else if (s.kind === 'flak') FL.hud.msg('Flak ausgeschaltet!', C.green, true);
     }
     blast(x, y, z, radius, dmg) {
       this.fx.explosion(x, Math.max(0.3, y), z, radius / 5);
       FL.audio.play('boom');
+      let hit = false;
       for (const s of this.structures) {
         if (!s.alive) continue;
         const d = Math.hypot(s.x - x, s.z - z) - s.r * 0.7;
-        if (d < radius) this.hitStructure(s, dmg * (d < radius * 0.5 ? 1 : 0.5));
+        if (d < radius) { hit = true; this.hitStructure(s, dmg * (d < radius * 0.5 ? 1 : 0.5)); }
       }
-      for (const j of this.jets) if (Math.hypot(j.x - x, j.y - y, j.z - z) < radius + 6) this.hitJet(j, dmg);
+      for (const j of this.jets) if (Math.hypot(j.x - x, j.y - y, j.z - z) < radius + 6) { hit = true; this.hitJet(j, dmg); }
+      return hit;
     }
     hitJet(j, d) {
       if (j.dead) return;
@@ -214,30 +311,33 @@
       this.t += dt;
       this.gunCd -= dt; this.bombCd -= dt; this.rocketCd -= dt; this.invuln -= dt;
       this.shake = Math.max(0, this.shake - dt);
+      if (this.phase !== 'flight') { this.updateBase(dt); return; }
 
       // lenken
-      let turn = (FL.down('ArrowLeft', 'KeyA') ? 1 : 0) - (FL.down('ArrowRight', 'KeyD') ? 1 : 0);
+      let turn = FL.clamp((FL.down('ArrowLeft', 'KeyA') ? 1 : 0) - (FL.down('ArrowRight', 'KeyD') ? 1 : 0) - FL.stick.x, -1, 1);
       // Steuerknüppel: nach hinten ziehen (Pfeil runter) hebt die Nase, nach vorn drücken (Pfeil hoch) senkt sie
-      let climb = (FL.down('ArrowDown', 'KeyS') ? 1 : 0) - (FL.down('ArrowUp', 'KeyW') ? 1 : 0);
+      let climb = FL.clamp((FL.down('ArrowDown', 'KeyS') ? 1 : 0) - (FL.down('ArrowUp', 'KeyW') ? 1 : 0) - FL.stick.y, -1, 1);
       if (FL.tilt.on) { turn = FL.clamp(turn + FL.tilt.turn, -1, 1); climb = FL.clamp(climb + FL.tilt.climb, -1, 1); }
-      const far = Math.hypot(this.x, this.z - 30);
-      if (far > 1000) {
+      const far = Math.hypot(this.x - MID.x, this.z - MID.z);
+      if (far > MIDR) {
         // zu weit weg: Das Flugzeug dreht von selbst zum Zielgebiet zurück
-        const rel = FL.bearing(this.x, this.z, this.th, 0, 30);
+        const rel = FL.bearing(this.x, this.z, this.th, MID.x, MID.z);
         if (Math.abs(rel) > 0.25) turn = rel > 0 ? 1 : -1;
         this.warnT -= dt;
         if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Zurück zum Zielgebiet!', C.text, true); }
       }
       if (this.lost) { turn = 0; climb = -1.2; }
+      // kurz nach dem Abheben steigt das Flugzeug von selbst auf sichere Höhe
+      if (this.floor < 16) { this.floor = Math.min(16, this.floor + 8 * dt); climb = Math.max(climb, 0.75); }
       this.th = wrap(this.th + turn * this.turnRate * dt);
-      this.y = FL.clamp(this.y + climb * 24 * dt, this.lost ? 4 : 16, 85);
+      this.y = FL.clamp(this.y + climb * 24 * dt, this.lost ? 4 : this.floor, 85);
       const k = 1 - Math.exp(-5 * dt);
       this.roll = FL.lerp(this.roll, -turn * 0.8, k);
       this.pitch = FL.lerp(this.pitch, -climb * 0.22, k);
       const sin = Math.sin(this.th), cos = Math.cos(this.th);
       this.x += sin * this.speed * dt; this.z += cos * this.speed * dt;
       this.place();
-      if (!this.lost && this.endT < 0) {
+      if (!this.lost && this.endT < 0 && !this.rtb) {
         this.fuel -= dt;
         if (this.fuel <= 0) { this.fuel = 0; this.lost = true; this.endT = 2.2; FL.hud.msg('Treibstoff leer: Rückflug!', C.red); }
         else if (this.fuel < 30 && Math.floor(this.fuel) % 10 === 0 && Math.floor(this.fuel + dt) !== Math.floor(this.fuel)) FL.hud.msg('Treibstoff wird knapp!', C.orange, true);
@@ -247,6 +347,7 @@
       const fall = Math.sqrt(2 * this.y / GRAV);
       const bx = this.x + sin * this.speed * fall, bz = this.z + cos * this.speed * fall;
       const bombR = 13 + 4 * lo.p_bomb;
+      this.ring.visible = this.dot.visible = true; this.goalRing.visible = false;
       this.ring.position.set(bx, 0.4, bz); this.ring.scale.set(bombR * 2, bombR * 2, 1);
       this.ring.material.opacity = this.bombCd <= 0 ? 1 : 0.35;
       const gd = 70 + this.y * 2.4, gx = this.x + sin * gd, gz = this.z + cos * gd;
@@ -270,7 +371,10 @@
       if (active && FL.down('KeyB', 'KeyX', 'Enter') && this.bombCd <= 0) {
         this.bombCd = 1.5 - 0.3 * lo.p_bomb;
         const mesh = FL.bombModel(); mesh.scale.setScalar(3.2); this.stage.add(mesh);
-        this.bombs.push({ x: this.x, y: this.y - 1, z: this.z, vx: sin * this.speed, vy: 0, vz: cos * this.speed, mesh, r: bombR, dmg: 12 + 5 * lo.p_bomb });
+        const bomb = { x: this.x, y: this.y - 1, z: this.z, vx: sin * this.speed, vy: 0, vz: cos * this.speed, mesh, r: bombR, dmg: 12 + 5 * lo.p_bomb };
+        this.bombs.push(bomb);
+        this.bview = { b: bomb, hold: -1 };
+        this.camBox.style.display = ''; this.camBox.className = 'bombcam'; this.camBox.lastChild.textContent = '';
         FL.audio.play('drop');
       }
       if (active && lo.p_rocket && FL.down('KeyR') && this.rocketCd <= 0) {
@@ -304,9 +408,17 @@
         b.vy -= GRAV * dt;
         b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
         b.mesh.position.set(b.x, b.y, b.z); b.mesh.lookAt(b.x + b.vx, b.y + b.vy, b.z + b.vz);
-        if (b.y <= 0.5) { b.gone = true; this.stage.scene.remove(b.mesh); this.blast(b.x, 0.5, b.z, b.r, b.dmg); }
+        if (b.y <= 0.5) {
+          b.gone = true; this.stage.scene.remove(b.mesh);
+          const hit = this.blast(b.x, 0.5, b.z, b.r, b.dmg);
+          if (this.bview && this.bview.b === b) {
+            this.bview.hold = 1.7;
+            this.camBox.className = 'bombcam ' + (hit ? 'hit' : 'miss'); this.camBox.lastChild.textContent = hit ? 'TREFFER!' : 'Daneben';
+          }
+        }
       }
       this.bombs = this.bombs.filter(b => !b.gone);
+      this.updateBombCam(dt);
       for (const r of this.rockets) {
         r.t += dt;
         const tg = r.target && (r.target.alive || (r.target.hp > 0 && !r.target.dead)) ? r.target : null;
@@ -319,8 +431,22 @@
       }
       this.rockets = this.rockets.filter(r => !r.gone);
 
-      this.updateFlak(dt, sin, cos, active);
-      this.updateJets(dt, active);
+      this.updateFlak(dt, sin, cos, active && !this.rtb);
+      this.updateJets(dt, active && !this.rtb);
+
+      // Heimflug: Wer den blauen Anflugpunkt in Richtung Landebahn überfliegt, bekommt die Landehilfe
+      if (this.rtb && active) {
+        for (const a of [AP_N, AP_S]) {
+          if (dist(this, a) > 150) continue;
+          if (Math.abs(wrap(this.th - a.th)) < 0.8) {
+            this.landDir = a.dir; this.touched = false; this.v = this.speed;
+            this.setPhase('landing'); FL.hud.msg('Landeanflug!', C.cyan);
+            for (const m of this.apMarks) m.visible = false;
+          } else { this.warnT -= dt; if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Flieg in Richtung Landebahn durch den blauen Ring', C.text, true); } }
+          break;
+        }
+        this.apMarks.forEach((m, i) => { const a = i ? AP_S : AP_N, sc = FL.clamp(dist(this, a) * 0.07, 24, 70); m.scale.set(sc, sc, 1); });
+      }
 
       // Rauch, Radarschüsseln, Zielmarken
       for (const b of this.burning) { b.t -= dt; if (Math.random() < dt * 4) fx.puff('smoke', b.x + FL.rand(-1, 1) * b.size * 0.4, 3, b.z, b.size * 2.2, FL.rand(2.5, 4), 1.5, FL.rand(5, 9), 0, 2); }
@@ -338,6 +464,137 @@
       if (this.endT >= 0) { this.endT -= dt; if (this.endT <= 0) this.result = this.lost ? 'lose' : 'win'; }
       fx.update(dt);
       this.updateCamera(dt);
+      this.updateHud();
+    }
+
+    updateBombCam(dt) {
+      const v = this.bview;
+      if (!v) return;
+      const b = v.b;
+      if (v.hold < 0) {
+        const s = Math.hypot(b.vx, b.vy, b.vz) || 1, dx = b.vx / s, dy = b.vy / s, dz = b.vz / s;
+        this.bcam.position.set(b.x - dx * 17, b.y - dy * 17 + 5, b.z - dz * 17);
+        this.bcam.lookAt(b.x + dx * 10, b.y + dy * 10, b.z + dz * 10);
+      } else {
+        v.hold -= dt;
+        this.bcam.position.y = Math.max(this.bcam.position.y, 9);
+        this.bcam.lookAt(b.x, 2, b.z);
+        if (v.hold <= 0) { this.bview = null; this.camBox.style.display = 'none'; }
+      }
+    }
+
+    // ---------------------------------------------------------------- an der Basis: laufen, rollen, starten, landen
+    solidPush(o, rad, skipJet) {
+      for (const s of this.baseSolid) {
+        const dx = o.x - s.x, dz = o.z - s.z, d = Math.hypot(dx, dz), min = s.r + rad;
+        if (d < min && d > 0.01) { o.x = s.x + dx / d * min; o.z = s.z + dz / d * min; }
+      }
+      if (!skipJet) { const dx = o.x - this.x, dz = o.z - this.z, d = Math.hypot(dx, dz); if (d < 4 && d > 0.01) { o.x = this.x + dx / d * 4; o.z = this.z + dz / d * 4; } }
+    }
+    updateBase(dt) {
+      const fx = this.fx, ph = this.phase, h = this.hero;
+      const kx = FL.clamp((FL.down('ArrowLeft', 'KeyA') ? 1 : 0) - (FL.down('ArrowRight', 'KeyD') ? 1 : 0) - FL.stick.x, -1, 1);
+      const ky = FL.clamp((FL.down('ArrowUp', 'KeyW') ? 1 : 0) - (FL.down('ArrowDown', 'KeyS') ? 1 : 0) + FL.stick.y, -1, 1);
+      let goal = null, camMode = 'jet';
+      if (ph === 'walk' || ph === 'walkback') {
+        goal = ph === 'walk' ? PARK : DOOR; camMode = 'walk';
+        const c = this.walkCam, done = this.endT >= 0;
+        const mx = done ? 0 : Math.sin(c) * ky + Math.cos(c) * kx, mz = done ? 0 : Math.cos(c) * ky - Math.sin(c) * kx, m = Math.hypot(mx, mz);
+        if (m > 0) { const sp = 9 * Math.min(1, m) / m; h.x += mx * sp * dt; h.z += mz * sp * dt; h.th = Math.atan2(mx, mz); }
+        h.x = FL.clamp(h.x, -362, -246); h.z = FL.clamp(h.z, -1112, -1034);
+        this.solidPush(h, 0.7, ph === 'walk');
+        h.mesh.position.set(h.x, 0, h.z); h.mesh.rotation.y = h.th;
+        FL.animSoldier(h.mesh, this.t * 1.6, m > 0, false);
+        if (ph === 'walk') {
+          this.alarmT -= dt;
+          if (this.alarmT <= 0 && this.alarmN < 6) { this.alarmT = 0.9; this.alarmN++; FL.audio.play('alarm'); FL.hud.damage(0.35); }
+          if (dist(h, PARK) < 6.5) {
+            h.mesh.visible = false; FL.audio.play('up');
+            this.setPhase('taxi'); FL.hud.msg('Eingestiegen!', C.green); FL.hud.msg('Roll zur Startbahn', C.gold, true);
+          }
+        } else if (!done && dist(h, DOOR) < 3.2) {
+          h.mesh.visible = false; this.endT = 1.8; FL.audio.play('coin');
+          FL.hud.msg('EINSATZ GESCHAFFT!', C.gold);
+        }
+      } else if (ph === 'taxi' || ph === 'taxiback') {
+        goal = ph === 'taxi' ? START : PARK;
+        const want = ky > 0.3 ? 15 : ky < -0.3 ? -4 : 0;
+        this.v += FL.clamp(want - this.v, -16 * dt, 9 * dt);
+        this.th = wrap(this.th + kx * 1.15 * FL.clamp(this.v / 5, -1, 1) * dt);
+        const ox = this.x, oz = this.z;
+        this.x += Math.sin(this.th) * this.v * dt; this.z += Math.cos(this.th) * this.v * dt;
+        this.x = FL.clamp(this.x, -352, BX + 13); this.z = FL.clamp(this.z, RZ0 - 6, RZ1 + 6);
+        // neben der Startbahn gibt es nur das Vorfeld
+        if (this.x < BX - 14 && (this.z < -1108 || this.z > -1042)) {
+          if (ox >= BX - 14) this.x = BX - 14; else this.z = FL.clamp(this.z, -1108, -1042);
+        }
+        this.solidPush(this, 5, true);
+        this.y = GY; this.roll = 0; this.pitch = 0;
+        if (Math.abs(this.v) > 3 && Math.random() < dt * 8) fx.puff('dust', this.x - Math.sin(this.th) * 5, 0.5, this.z - Math.cos(this.th) * 5, 2, 0.7, 0, 1, 0, 1.5);
+        if (dist(this, goal) < (ph === 'taxi' ? 9 : 7)) {
+          if (ph === 'taxi') { this.lineT = 0; this.from = { x: this.x, z: this.z, th: this.th }; this.setPhase('lineup'); FL.hud.msg('Startbahn erreicht!', C.green, true); }
+          else { this.v = 0; this.parkT = 1.3; this.setPhase('parked'); FL.audio.play('up'); FL.hud.msg('Geparkt!', C.green); }
+        }
+      } else if (ph === 'lineup') {
+        this.lineT += dt / 1.6;
+        const k = Math.min(1, this.lineT), e = k * k * (3 - 2 * k), f = this.from;
+        this.x = FL.lerp(f.x, START.x, e); this.z = FL.lerp(f.z, START.z, e); this.th = f.th + wrap(0 - f.th) * e; this.v = 0;
+        if (k >= 1) { this.th = 0; if (FL.tilt.on) FL.tilt.center(true); this.setPhase('takeoff'); FL.hud.msg('Start frei!', C.gold); FL.hud.msg('Gas geben', C.text, true); }
+      } else if (ph === 'takeoff') {
+        const gas = ky > 0.3, pull = ky < -0.3 || (FL.tilt.on && FL.tilt.climb > 0.35);
+        this.v = FL.clamp(this.v + (gas || this.v > 45 ? 13 : -10) * dt, 0, 62);
+        this.z += this.v * dt; this.x = BX; this.th = 0;
+        if (this.v > 8 && Math.random() < dt * 14) fx.puff('dust', this.x + FL.rand(-2, 2), 0.6, this.z - 6, 3, 0.8, 0, 1, -this.v * 0.2, 1.6);
+        if (this.v > 5 && !this.roared) { this.roared = true; FL.audio.play('jet'); }
+        if (this.v >= 45 && !this.rotMsg) { this.rotMsg = true; FL.hud.msg('Jetzt ziehen: abheben!', C.cyan); }
+        this.pitch = FL.lerp(this.pitch, this.v >= 45 ? -0.12 : 0, 1 - Math.exp(-4 * dt));
+        if (this.v >= 45 && (pull || this.v >= 61.5 || this.z > RZ1 - 90)) {
+          this.floor = GY; this.setPhase('flight');
+          FL.hud.msg('Abgehoben!', C.green); FL.hud.msg('Zerstöre alle markierten Ziele!', C.gold, true);
+        }
+      } else if (ph === 'landing') {
+        const d = this.landDir, s = d > 0 ? this.z - RZ0 : RZ1 - this.z;
+        const des = Math.atan2(BX - this.x, 80 * d), dth = FL.clamp(wrap(des - this.th), -1.3 * dt, 1.3 * dt);
+        this.th = wrap(this.th + dth);
+        const ty = s < 0 ? GY + -s * 0.13 : GY;
+        this.y += FL.clamp(ty - this.y, -22 * dt, 4 * dt);
+        const ground = this.y <= GY + 0.05 && s > -8;
+        if (ground) {
+          this.y = GY;
+          if (!this.touched) { this.touched = true; this.shake = 0.3; FL.audio.play('hit'); for (let i = 0; i < 6; i++) fx.puff('white', this.x + FL.rand(-3, 3), 0.6, this.z, 3, 0.9, 0, 1.5, 0, 1.8); FL.hud.msg('Aufgesetzt!', C.green, true); }
+          this.v = Math.max(9, this.v - 11 * dt);
+        } else this.v = FL.lerp(this.v, 46, 1 - Math.exp(-1.2 * dt));
+        this.x += Math.sin(this.th) * this.v * dt; this.z += Math.cos(this.th) * this.v * dt;
+        const k = 1 - Math.exp(-5 * dt);
+        this.roll = FL.lerp(this.roll, ground ? 0 : -FL.clamp(dth / dt, -1, 1) * 0.5, k);
+        this.pitch = FL.lerp(this.pitch, ground ? 0 : -0.1, k);
+        if (ground && this.v <= 9.01) { this.setPhase('taxiback'); FL.hud.msg('Gelandet!', C.gold); FL.hud.msg('Roll zum Parkplatz', C.text, true); }
+      } else if (ph === 'parked') {
+        this.parkT -= dt;
+        if (this.parkT <= 0) {
+          const a = Math.atan2(DOOR.x - this.x, DOOR.z - this.z);
+          h.x = this.x + Math.sin(a) * 5; h.z = this.z + Math.cos(a) * 5; h.th = a; h.mesh.visible = true;
+          this.walkCam = Math.atan2(DOOR.x - h.x, DOOR.z - h.z);
+          this.camTh = this.walkCam;
+          this.setPhase('walkback'); FL.hud.msg('Ausgestiegen. Geh ins Basisgebäude', C.gold, true);
+        }
+      }
+      this.place();
+      this.ring.visible = false; this.dot.visible = false;
+      this.goalRing.visible = !!goal;
+      if (goal) { const sc = (goal === DOOR ? 5 : 11) * (1 + Math.sin(this.t * 5) * 0.1); this.goalRing.position.set(goal.x, 0.3, goal.z); this.goalRing.scale.set(sc, sc, 1); }
+      this.goal = goal;
+      for (const s of this.spinners) s.rotation.y += dt * 1.5;
+      for (const b of this.burning) { b.t -= dt; if (Math.random() < dt * 4) fx.puff('smoke', b.x, 3, b.z, b.size * 2.2, FL.rand(2.5, 4), 1.5, FL.rand(5, 9), 0, 2); }
+      this.updateBombCam(dt);
+      if (this.endT >= 0) { this.endT -= dt; if (this.endT <= 0) this.result = this.lost ? 'lose' : 'win'; }
+      fx.update(dt);
+      if (camMode === 'walk') {
+        const cam = this.stage.camera, c = this.walkCam, sin = Math.sin(c), cos = Math.cos(c);
+        cam.position.set(h.x - sin * 12, 6.5, h.z - cos * 12);
+        cam.lookAt(h.x + sin * 8, 1.6, h.z + cos * 8);
+        this.stage.update(new THREE.Vector3(h.x + sin * 12, 0, h.z + cos * 12));
+      } else this.updateCamera(dt);
       this.updateHud();
     }
 
@@ -430,9 +687,11 @@
       const cam = this.stage.camera;
       this.camTh += wrap(this.th - this.camTh) * (1 - Math.exp(-3.5 * dt));
       const sin = Math.sin(this.camTh), cos = Math.cos(this.camTh), sh = this.shake * 2;
-      cam.position.set(this.x - sin * 27 + FL.rand(-sh, sh), this.y + 9 + FL.rand(-sh, sh), this.z - cos * 27);
-      cam.lookAt(this.x + sin * 45, this.y - 9, this.z + cos * 45);
-      this.stage.update(new THREE.Vector3(this.x + Math.sin(this.th) * 90, 0, this.z + Math.cos(this.th) * 90));
+      const hgt = FL.clamp((this.y - GY) / 22, 0, 1), back = FL.lerp(20, 27, hgt);
+      cam.position.set(this.x - sin * back + FL.rand(-sh, sh), this.y + FL.lerp(5.5, 9, hgt) + FL.rand(-sh, sh), this.z - cos * back);
+      cam.lookAt(this.x + sin * 45, this.y - FL.lerp(1, 9, hgt), this.z + cos * 45);
+      const ahead = FL.lerp(15, 90, hgt);
+      this.stage.update(new THREE.Vector3(this.x + Math.sin(this.th) * ahead, 0, this.z + Math.cos(this.th) * ahead));
     }
 
     updateHud() {
@@ -440,10 +699,22 @@
       H.set(this.hTL, `<div class="hud-big"><span class="coins">${this.coins}</span></div>` +
         `<div>Panzerung</div>${H.meter(hp, hp < 0.35 ? 'red' : hp < 0.65 ? 'gold' : '')}` +
         `<div>Treibstoff</div>${H.meter(fuel, fuel < 0.2 ? 'red' : 'cyan')}` +
-        `<div>Höhe ${Math.round(this.y * 10)} m</div>`);
+        `<div>Höhe ${Math.round(Math.max(0, this.y - GY) * 10)} m</div>`);
       let tc = `<div>Ziele: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
       const next = this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
-      if (next) tc += `<div>Nächstes Ziel ${FL.arrowHtml(FL.bearing(this.x, this.z, this.th, next.x, next.z), Math.hypot(next.x - this.x, next.z - this.z))}</div>`;
+      const ph = this.phase, walking = ph === 'walk' || ph === 'walkback';
+      const me = walking ? this.hero : this, myTh = walking ? this.walkCam : this.th;
+      const to = (label, g) => `<div>${label} ${FL.arrowHtml(FL.bearing(me.x, me.z, myTh, g.x, g.z), dist(me, g))}</div>`;
+      if (ph === 'walk') tc = '<div style="color:#ef5a4c"><b>ALARM!</b></div>' + to('Zum Flugzeug', PARK);
+      else if (ph === 'taxi') tc = to('Zur Startbahn', START);
+      else if (ph === 'lineup') tc = '<div>Ausrichten …</div>';
+      else if (ph === 'takeoff') tc = `<div>Tempo</div>${H.meter(this.v / 45, this.v >= 45 ? '' : 'gold')}<div>${this.v >= 45 ? '<b style="color:#46dcff">Ziehen: abheben!</b>' : 'Gas geben'}</div>`;
+      else if (ph === 'landing') tc = '<div style="color:#46dcff"><b>Landeanflug</b></div>';
+      else if (ph === 'taxiback') tc = to('Zum Parkplatz', PARK);
+      else if (ph === 'parked') tc = '<div>Geparkt</div>';
+      else if (ph === 'walkback') tc = to('Zum Basisgebäude', DOOR);
+      else if (this.rtb) { const a = dist(this, AP_N) < dist(this, AP_S) ? AP_N : AP_S; tc = '<div style="color:#5fd07a"><b>Alle Ziele zerstört</b></div>' + to('Landeanflug', a); }
+      else if (next) tc += to('Nächstes Ziel', next);
       H.set(this.hTC, tc);
       let tr = `<div class="slot ${this.bombCd <= 0 ? 'ready' : ''}"><b>B</b>Bombe ${this.bombCd <= 0 ? 'bereit' : 'lädt'}</div>`;
       if (lo.p_rocket) tr += `<br><div class="slot ${this.rocketCd <= 0 ? 'ready' : ''}"><b>R</b>Raketen${this.rocketCd <= 0 ? ' bereit' : `<i style="width:${Math.round((1 - this.rocketCd / this.rocketMax) * 100)}%"></i>`}</div>`;
@@ -451,10 +722,14 @@
       const items = [];
       for (const s of this.structures) if (s.alive) items.push({ x: s.x, z: s.z, color: s.primary ? '#ff5a3c' : s.kind === 'flak' ? '#ffc43c' : '#6f7f8c', size: s.primary ? 4 : 2.5, far: s.primary });
       for (const j of this.jets) items.push({ x: j.x, z: j.z, color: '#ff40c0', size: 4, far: true });
-      FL.drawMinimap(this.map, this.x, this.z, this.th, 520, items);
+      items.push({ x: BX, z: (RZ0 + RZ1) / 2, color: '#5fd07a', size: 5, far: true });
+      if (this.rtb) for (const a of [AP_N, AP_S]) items.push({ x: a.x, z: a.z, color: '#46dcff', size: 4, far: true });
+      const air = ph === 'flight' || ph === 'landing';
+      this.hInfo.style.display = ph === 'flight' ? '' : 'none';
+      FL.drawMinimap(this.map, me.x, me.z, myTh, air ? 520 : 120, items);
     }
 
     onKey() {}
-    destroy() { this.stage.dispose(); }
+    destroy() { FL.tilt.air = false; this.stage.dispose(); }
   };
 })();

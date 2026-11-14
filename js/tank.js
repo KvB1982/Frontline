@@ -198,8 +198,8 @@
       this.shake = Math.max(0, this.shake - dt); this.recoil = Math.max(0, this.recoil - dt * 4);
 
       // fahren und lenken
-      const fwd = active ? (FL.down('ArrowUp') ? 1 : 0) - (FL.down('ArrowDown') ? 0.6 : 0) : 0;
-      const turn = active ? (FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) : 0;
+      const sy = FL.stick.y, fwd = active ? FL.clamp((FL.down('ArrowUp') ? 1 : 0) - (FL.down('ArrowDown') ? 0.6 : 0) + (sy > 0 ? sy : sy * 0.6), -0.6, 1) : 0;
+      const turn = active ? FL.clamp((FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) - FL.stick.x, -1, 1) : 0;
       const tturn = active ? (FL.down('KeyA', 'KeyQ') ? 1 : 0) - (FL.down('KeyD', 'KeyE') ? 1 : 0) : 0;
       this.v = FL.lerp(this.v, fwd * this.maxV, 1 - Math.exp(-3 * dt));
       this.th = wrap(this.th + turn * this.turnRate * dt);
