@@ -11,3 +11,5 @@ Ein 3D-Spiel für den Browser: Karriere mit 12 Einsätzen, Luftangriffe im Kampf
 Im Ordner `aeltere-spiele` liegen die früheren Python-Spiele (Ballon-Alarm, Frontlinie, Frontlinie 2).
 
 Die 3D-Grafik nutzt [three.js](https://threejs.org) (MIT-Lizenz, siehe `lib/three-LICENSE.txt`).
+
+Die Fahrzeug- und Flugzeugmodelle stammen von Sketchfab. Urheber und Lizenzen stehen in [LIZENZEN.md](LIZENZEN.md). Der Eurofighter steht unter CC BY-NC-SA 4.0 und darf nur nicht-kommerziell genutzt werden.

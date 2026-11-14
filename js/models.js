@@ -76,6 +76,13 @@
     g.userData = { legs, arms, body, gun, phase: Math.random() * 6 };
     return g;
   };
+  // Turm eines Panzers drehen (fertige Modelle bringen dafür ihre eigene Funktion mit)
+  FL.setTurret = (m, yaw, recoil) => {
+    const u = m.userData;
+    if (u.setTurret) return u.setTurret(yaw, recoil || 0);
+    u.turret.rotation.y = yaw;
+    if (recoil !== undefined) u.turret.position.z = -0.2 - recoil * 0.35;
+  };
   // Laufen und Ducken
   FL.animSoldier = (g, t, moving, crouch) => {
     const u = g.userData, s = moving ? Math.sin(t * 9 + u.phase) * 0.6 : 0;

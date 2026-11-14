@@ -336,8 +336,7 @@
       }
       this.tank.position.set(this.x, 0, this.z);
       this.tank.rotation.y = this.th;
-      this.tank.userData.turret.rotation.y = this.tu;
-      this.tank.userData.turret.position.z = -0.2 - this.recoil * 0.35;
+      FL.setTurret(this.tank, this.tu, this.recoil);
       if (Math.abs(this.v) > 2) {
         this.dustT -= dt;
         if (this.dustT <= 0) { this.dustT = 0.1; fx.puff('dust', this.x - Math.sin(this.th) * 3.2, 0.5, this.z - Math.cos(this.th) * 3.2, 2.2, 0.8, 0, 1, 0, 1.6); }
@@ -426,7 +425,7 @@
           const want = Math.atan2(this.x - e.x, this.z - e.z);
           e.th = wrap(e.th + FL.clamp(wrap(want - e.th), -0.7 * dt, 0.7 * dt));
           if (d > 55) { e.x += Math.sin(e.th) * 5 * dt; e.z += Math.cos(e.th) * 5 * dt; this.pushOut(e, 2.6); }
-          e.mesh.userData.turret.rotation.y = wrap(want - e.th);
+          FL.setTurret(e.mesh, wrap(want - e.th));
           e.cd -= dt;
           if (e.cd <= 0 && d < 150) { e.cd = FL.rand(3.6, 5) / rate; fire(e.x + Math.sin(want) * 5, e.z + Math.cos(want) * 5, 1.9); }
         }

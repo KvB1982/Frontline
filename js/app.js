@@ -95,6 +95,7 @@
     const glabel = () => { gfx.innerHTML = `Grafik: ${FL.save.gfx || 'auto'}<small>Wenn das Spiel ruckelt: „schnell“ wählen</small>`; };
     glabel();
     FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
+    FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) und bohmerang (CC BY-NC-SA) · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
     FL.onKey = code => { if (code === 'KeyM') label(); };
   };
 
@@ -239,7 +240,8 @@
     // Neigungssteuerung fürs Flugzeug: Die Erlaubnis muss direkt beim Fingertipp geholt werden.
     if (cfg.kind === 'flight' && FL.touch.active && FL.save.tilt !== false) FL.tilt.start(false); else FL.tilt.stop(false);
     FL.onKey = null;
-    fade(() => {
+    // erst starten, wenn die 3D-Modelle geladen sind
+    FL.ext.whenReady(() => fade(() => {
       A.launching = false;
       if (A.backdrop) { A.backdrop.destroy(); A.backdrop = null; }
       if (A.mode) { A.mode.destroy(); A.mode = null; }
@@ -253,7 +255,7 @@
         if (code === 'KeyP' || code === 'Escape') setPause(!A.paused);
         else if (!A.paused) A.mode.onKey(code);
       };
-    });
+    }));
   };
   A.launch = launch;
   const leave = () => fade(() => { toMenus(); if (A.ctx.ctx.type === 'career') careerPage(); else manualPage(); });
@@ -344,6 +346,7 @@
       FL.el('div', 'menu', '<div class="title">FRONTLINIE 3</div><div class="panel result"><div class="big">Dieser Browser kann leider kein 3D (WebGL) anzeigen.</div><div class="muted">Bitte mit einem aktuellen Chrome, Edge oder Firefox öffnen.</div></div>', clearScreen());
       return;
     }
+    FL.ext.load();
     mainMenu();
     requestAnimationFrame(frame);
   };

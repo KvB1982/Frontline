@@ -63,7 +63,7 @@
           const mobile = this.kind === 'attack';
           const m = mobile ? FL.spgModel(FL.PAL.ally, lo.towers) : FL.building('cannon', this.cfg.theme, { level: lo.towers });
           if (mobile) m.scale.setScalar(0.8);
-          m.position.set((i === 0 ? 1 : -1) * (mobile ? 12.4 : 10.8), 0, mobile ? 9.6 : 7.5);
+          m.position.set((i === 0 ? 1 : -1) * (mobile ? 14 : 10.8), 0, mobile ? 13.5 : 7.5);
           st.add(m); this.towerMeshes.push(m);
         }
       }

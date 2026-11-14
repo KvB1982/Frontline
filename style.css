@@ -197,3 +197,5 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 .tgauge { position: relative; width: 44px; height: 44px; border-radius: 8px; background: rgba(20, 30, 40, 0.6); border: 2px solid rgba(220, 235, 245, 0.45); }
 .tgauge::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
 .tgauge i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--cyan); }
+.credits { font-size: 11px; color: var(--muted); max-width: 520px; text-align: center; opacity: 0.85; }
+.credits a { color: inherit; }

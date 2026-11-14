@@ -131,6 +131,10 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 - Vor der gegnerischen Basis zielt dein Soldat von selbst auf das nächste Gebäude, wenn kein Gegner vor ihm steht.
 - Wenn das Spiel ruckelt: im Hauptmenü bei „Grafik“ auf „schnell“ stellen.
 
+## Modelle
+
+Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sketchfab (SPz Puma, T-62, Humvee, Apache, Eurofighter und ein moderner Kampfjet). Beim ersten Start eines Einsatzes werden sie kurz geladen. Wer sie gebaut hat und unter welcher Lizenz sie stehen, steht in `LIZENZEN.md` und im Spiel unter „Quellen“ im Hauptmenü.
+
 ## Auf dem iPad spielen
 
 Auf dem iPad gibt es Knöpfe auf dem Bildschirm: links zum Bewegen oder Lenken, rechts zum Schießen und für alles andere. Im Flugzeug und im Panzer ist links ein runder Steuerknüppel, den du in jede Richtung ziehen kannst. Das iPad quer halten.
