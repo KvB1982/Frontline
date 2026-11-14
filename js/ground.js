@@ -83,7 +83,8 @@
       for (let z = -30; z < len; z += 2.1) {
         for (const side of [-1, 1]) {
           if (rnd() > 0.78) continue;
-          const x = side * (9.8 + Math.pow(rnd(), 1.6) * 70), zz = z + rnd() * 2;
+          // beim Angriff fahren Panzer und Geschützwagen mit: Dort bleibt neben der Straße eine breite Gasse frei
+          const x = side * ((this.kind === 'attack' ? 17.8 : 9.8) + Math.pow(rnd(), 1.6) * 70), zz = z + rnd() * 2;
           const local = ((zz % SEC) + SEC) % SEC;
           if (Math.abs(x) < 14 && local > 1 && local < 12) continue;                 // Platz für Türme und Fahrzeuge
           if (this.kind === 'attack' && zz > fortZw - 9 && zz < fortZw + 30 && Math.abs(x) < 34) continue;
@@ -97,10 +98,10 @@
       // Kontrollpunkte zwischen den Abschnitten
       for (let k = 0; k < this.nSec - 1; k++) {
         const z = k * SEC + 44.5, g = new THREE.Group();
-        g.add(FL.box(2.6, 2.6, 2.6, FL.wallMat(th, 0.8, 0.8), 13, 1.3, 0), FL.box(3.0, 0.25, 3.0, FL.mat(0x3a3430), 13, 2.72, 0));
-        for (let i = 0; i < 5; i++) g.add(FL.box(0.18, 1.0, 0.18, FL.mat(i % 2 ? 0xe8e8e8 : 0xc03020), 8.2, 1.2 + i * 1.0, 0));
-        g.add(FL.box(0.4, 1.3, 0.4, FL.mat(0x444444), 8.2, 0.65, 0), FL.cyl(0.07, 0.07, 6.5, 5, FL.mat(0xbbbbbb), -8.6, 3.25, 0), FL.box(1.9, 1.1, 0.06, FL.mat(0xffc43c), -9.6, 5.8, 0));
-        for (const sx of [-1, 1]) { const sb = FL.building('sandbags', th, { len: 4 }); sb.position.set(sx * 10.6, 0, -2.4); g.add(sb); }
+        g.add(FL.box(2.6, 2.6, 2.6, FL.wallMat(th, 0.8, 0.8), 20, 1.3, 0), FL.box(3.0, 0.25, 3.0, FL.mat(0x3a3430), 20, 2.72, 0));
+        for (let i = 0; i < 5; i++) g.add(FL.box(0.18, 1.0, 0.18, FL.mat(i % 2 ? 0xe8e8e8 : 0xc03020), 17.2, 1.2 + i * 1.0, 0));
+        g.add(FL.box(0.4, 1.3, 0.4, FL.mat(0x444444), 17.2, 0.65, 0), FL.cyl(0.07, 0.07, 6.5, 5, FL.mat(0xbbbbbb), -17.2, 3.25, 0), FL.box(1.9, 1.1, 0.06, FL.mat(0xffc43c), -18.2, 5.8, 0));
+        for (const sx of [-1, 1]) { const sb = FL.building('sandbags', th, { len: 4 }); sb.position.set(sx * 19.5, 0, -2.4); g.add(sb); }
         g.position.z = z; w.add(g);
       }
       if (this.kind === 'attack') this.buildEnemyBase(fortZw);
