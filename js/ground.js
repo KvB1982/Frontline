@@ -310,7 +310,7 @@
           sx: e.x, sz: e.z - 0.5, tx: m.x + FL.rand(-spread, spread), tz: m.z, speed, t: -k * 0.1, kind: e.gun, target: m,
           h0: e.vehicle || e.fort ? (e.fort ? 4 : 1.8) : 1.3
         };
-        b.mesh = e.gun === 'rakete' ? FL.rocketModel() : e.gun === 'granate' ? FL.ball(0.22, FL.mat(0x1c1c1c), 0, 0, 0, 6, 5) : this.fx.shot(0xff5a46, 0.07, 1.5);
+        b.mesh = e.gun === 'rakete' ? FL.rocketModel() : e.gun === 'granate' ? FL.shellModel(0.13) : this.fx.shot(0xff5a46, 0.07, 1.5);
         if (e.gun !== 'gewehr' && e.gun !== 'mg') this.stage.add(b.mesh);
         b.mesh.visible = false;
         this.ebullets.push(b);
@@ -376,7 +376,7 @@
     }
     lob(x, y, z, tg, dmg, radius, kind, delay, dur) {
       const [ax, az] = this.aimPoint(tg, x);
-      const mesh = kind === 'rocket' ? FL.rocketModel() : kind === 'bomb' ? FL.bombModel() : FL.ball(0.3, FL.mat(0x1c1c1c), 0, 0, 0, 6, 5);
+      const mesh = kind === 'rocket' ? FL.rocketModel() : kind === 'bomb' ? FL.bombModel() : FL.shellModel(0.17);
       mesh.visible = false; this.stage.add(mesh);
       this.shells.push({ kind, x, y, z, sx: x, sy: y, sz: z, tx: ax, tz: az, t: -(delay || 0), dur: dur || 0.9, target: tg, dmg, radius, mesh });
     }
@@ -667,7 +667,7 @@
         const x = b.sx + (b.tx - b.sx) * k, z = b.sz + (b.tz - b.sz) * k;
         const y = (b.h0 + (1.2 - b.h0) * k) + (b.kind === 'granate' ? Math.sin(k * Math.PI) * 4 : 0);
         b.mesh.visible = true; b.mesh.position.set(x, y, z);
-        b.mesh.rotation.y = Math.atan2(b.tx - b.sx, b.tz - b.sz);
+        if (b.kind === 'granate') FL.aimShell(b, x, y, z); else b.mesh.rotation.y = Math.atan2(b.tx - b.sx, b.tz - b.sz);
         if (b.kind === 'rakete' && Math.random() < 0.5) fx.puff('white', x, y, z + 0.6, 0.5, 0.4, 0, 0.3, 0, 1.5);
         const m = b.target, soldier = !isVeh(m);
         if (this.ducking && soldier && z <= COVER_Z + 0.3) {
@@ -706,6 +706,7 @@
           if (k >= 1) { s.gone = true; this.explode(s.x, s.z, s.radius, s.dmg); }
         }
         s.mesh.position.set(s.x, s.y, s.z);
+        if (s.kind !== 'rocket') FL.aimShell(s, s.x, s.y, s.z);
         if (s.gone) this.stage.scene.remove(s.mesh);
       }
       this.shells = this.shells.filter(s => !s.gone);

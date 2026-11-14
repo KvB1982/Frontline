@@ -293,6 +293,22 @@
     g.add(box(0.5, 0.04, 0.3, m, 0, 0, -0.6), box(0.04, 0.5, 0.3, m, 0, 0, -0.6));
     return g;
   };
+  // Granate für Panzer, Geschütze und Artillerie: spitzes Geschoss mit Leuchtspur, fliegt mit der Spitze voran (+z)
+  FL.shellModel = r => {
+    const g = new THREE.Group();
+    const b = cyl(r, r, r * 3.4, 8, mat(0x4a5040, { shiny: 40 }), 0, 0, 0); b.rotation.x = Math.PI / 2; g.add(b);
+    const n = cyl(0.01, r, r * 2.2, 8, mat(0xc9a24a, { shiny: 60 }), 0, 0, r * 2.8); n.rotation.x = Math.PI / 2; g.add(n);
+    const band = cyl(r * 1.08, r * 1.08, r * 0.5, 8, mat(0xb07a30), 0, 0, -r * 1.1); band.rotation.x = Math.PI / 2; g.add(band);
+    g.add(box(r * 0.5, r * 0.5, r * 9, FL.basic(0xffc070), 0, 0, -r * 6.2));
+    const f = FL.sprite(FL.tex.icon('glow'), r * 5, { add: true }); f.position.z = -r * 1.9; f.material.color.set(0xffa040); g.add(f);
+    for (const c of g.children) c.castShadow = false;
+    return g;
+  };
+  // dreht ein Geschoss in Flugrichtung (aus der Bewegung seit dem letzten Bild)
+  FL.aimShell = (o, x, y, z) => {
+    if (o.lx !== undefined && (x !== o.lx || y !== o.ly || z !== o.lz)) o.mesh.lookAt(2 * x - o.lx, 2 * y - o.ly, 2 * z - o.lz);
+    o.lx = x; o.ly = y; o.lz = z;
+  };
   FL.rocketModel = () => {
     const g = new THREE.Group();
     const b = cyl(0.11, 0.11, 1.3, 6, mat(0xdedede), 0, 0, 0); b.rotation.x = Math.PI / 2; g.add(b);

@@ -4,6 +4,8 @@
   const T = FL.touch = { active: false, layer: null, held: new Map(), swipe: 0 };
   // runder Steuerknüppel: x nach rechts, y nach vorn (oben), jeweils -1 bis 1
   FL.stick = { x: 0, y: 0 };
+  // Schubhebel (nur bei Neigesteuerung im Flugzeug): v von 0 bis 1, über 0.9 zündet der Nachbrenner
+  FL.throttle = { on: false, v: 0 };
   const press = code => { if (!FL.keys[code]) { FL.keys[code] = true; if (FL.onKey) FL.onKey(code); } };
   const release = code => { FL.keys[code] = false; };
   const btnAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.tbtn') : null; };
@@ -196,6 +198,35 @@
       const extra = FL.el('div', 'textra', '', right);
       if (kind === 'flight') {
         make(right, 'BOMBE', 'KeyB', 'wide bomb');
+        // Wischen auf dem freien Bildschirm: nach unten = Bombe, nach oben = Rakete
+        const area = FL.el('div', 'tswipe', '');
+        L.insertBefore(area, L.firstChild);
+        let sw = null;
+        const pulse = code => { press(code); setTimeout(() => release(code), 220); if (navigator.vibrate) navigator.vibrate(10); };
+        area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, done: false }; });
+        area.addEventListener('pointermove', e => {
+          if (!sw || e.pointerId !== sw.id || sw.done) return;
+          const dy = e.clientY - sw.y0, dx = e.clientX - sw.x0;
+          if (Math.abs(dy) > 55 && Math.abs(dy) > Math.abs(dx) * 1.2) { sw.done = true; pulse(dy > 0 ? 'KeyB' : 'KeyR'); }
+        });
+        const endW = e => { if (sw && e.pointerId === sw.id) sw = null; };
+        area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
+        // Schubhebel links
+        const thr = FL.el('div', 'tthr', '<span class="nb">NB</span><i></i><b></b><em></em>', L);
+        const fill = thr.querySelector('i'), grip = thr.querySelector('b'), txt = thr.querySelector('em');
+        let tid = null;
+        const setT = v => {
+          v = FL.clamp(v, 0, 1); FL.throttle.v = v;
+          fill.style.height = `calc((100% - 28px) * ${v})`; grip.style.bottom = `calc(14px + (100% - 28px) * ${v})`;
+          thr.classList.toggle('ab', v > 0.9);
+          txt.textContent = v > 0.9 ? 'Nachbrenner' : 'Schub ' + Math.round(v / 0.9 * 100) + ' %';
+        };
+        const evT = e => { const r = thr.getBoundingClientRect(); setT(1 - (e.clientY - r.top - 14) / (r.height - 28)); };
+        thr.addEventListener('pointerdown', e => { if (tid !== null) return; e.preventDefault(); tid = e.pointerId; try { thr.setPointerCapture(tid); } catch (err) {} evT(e); });
+        thr.addEventListener('pointermove', e => { if (e.pointerId === tid) evT(e); });
+        const endT = e => { if (e.pointerId === tid) tid = null; };
+        thr.addEventListener('pointerup', endT); thr.addEventListener('pointercancel', endT);
+        setT(0);
         // Neigungssteuerung: an/aus und Mittelstellung neu setzen
         const bar = FL.el('div', 'ttilt', '', L);
         const tog = FL.el('div', 'tchip', '', bar), mid = FL.el('div', 'tchip cal', 'Kalibrieren', bar);
@@ -209,11 +240,18 @@
           // am Boden (laufen, rollen) braucht man den Steuerknüppel, in der Luft ersetzt das Neigen ihn
           left.style.display = on && FL.tilt.air ? 'none' : '';
           if (left.style.display) FL.stick.x = FL.stick.y = 0;
+          // Schubhebel: sobald man im Flugzeug sitzt. Solange der Steuerknüppel zu sehen ist, steht er darüber.
+          const lever = on && !!FL.tilt.cockpit;
+          if (lever && !FL.throttle.on) setT(FL.tilt.air ? 0.62 : 0);
+          FL.throttle.on = lever;
+          thr.style.display = lever ? '' : 'none';
+          thr.classList.toggle('high', !left.style.display);
         };
         FL.tilt.onChange = draw;
         tog.addEventListener('click', () => { if (FL.tilt.on) FL.tilt.stop(true); else FL.tilt.start(true); });
         mid.addEventListener('pointerdown', e => { e.preventDefault(); FL.tilt.center(); mid.classList.add('flash'); setTimeout(() => mid.classList.remove('flash'), 350); });
         draw();
+        make(extra, 'Fahrwerk', 'KeyG', 'small cyan', TAP);
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
       } else {
         make(extra, 'Turm ◀', 'KeyA', 'small'); make(extra, 'Mitte', 'KeyW', 'small'); make(extra, 'Turm ▶', 'KeyD', 'small');
@@ -227,6 +265,7 @@
     T.swipe = 0;
     FL.tilt.onChange = null; FL.tilt.dot = null;
     FL.stick.x = FL.stick.y = 0;
+    FL.throttle.on = false; FL.throttle.v = 0;
     for (const b of T.held.values()) release(b.dataset.code);
     T.held.clear();
     if (T.layer) { T.layer.remove(); T.layer = null; }

@@ -199,3 +199,13 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 .tgauge i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--cyan); }
 .credits { font-size: 11px; color: var(--muted); max-width: 520px; text-align: center; opacity: 0.85; }
 .credits a { color: inherit; }
+
+/* Schubhebel */
+.tthr { position: absolute; left: calc(26px + env(safe-area-inset-left)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 74px; height: min(300px, calc(100vh - 190px)); border-radius: 18px; background: rgba(20, 30, 40, 0.55); border: 3px solid rgba(220, 235, 245, 0.45); pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.tthr.high { bottom: calc(250px + env(safe-area-inset-bottom)); height: min(240px, calc(100vh - 400px)); min-height: 110px; }
+.tthr::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10%; border-radius: 14px 14px 0 0; background: rgba(255, 140, 60, 0.35); border-bottom: 2px dashed rgba(255, 140, 60, 0.8); }
+.tthr .nb { position: absolute; top: 3px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 800; color: var(--orange); }
+.tthr i { position: absolute; left: 30px; width: 8px; bottom: 14px; max-height: calc(100% - 28px); background: var(--cyan); border-radius: 4px; }
+.tthr b { position: absolute; left: 5px; right: 5px; height: 28px; margin-bottom: 0; border-radius: 9px; background: linear-gradient(#fff, #9fb0bd); border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5); transform: translateY(50%); }
+.tthr.ab { border-color: var(--orange); } .tthr.ab i { background: var(--orange); } .tthr.ab b { background: linear-gradient(#ffd9a0, #ff8c3c); }
+.tthr em { position: absolute; left: 86px; bottom: 6px; white-space: nowrap; font-style: normal; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; }

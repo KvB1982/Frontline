@@ -231,7 +231,7 @@
         if (q.cd <= 0) {
           q.cd = 0.36; q.n--;
           const a = Math.random() * 6.283, d = Math.sqrt(Math.random()) * 13, tx = q.x + Math.sin(a) * d, tz = q.z + Math.cos(a) * d;
-          const mesh = FL.ball(0.5, FL.mat(0x1c1c1c), 0, 0, 0, 6, 5); st.add(mesh);
+          const mesh = FL.shellModel(0.3); st.add(mesh);
           this.sup.push({ kind: 'shell', sx: tx - Math.sin(this.th) * 30, sz: tz - Math.cos(this.th) * 30, tx, tz, x: tx, y: 70, z: tz, t: 0, T: 1.3, life: 9, mesh });
           if (q.n <= 0) this.barrage = null;
         }
@@ -266,7 +266,7 @@
             a.fire = 0.75;
             const mesh = FL.rocketModel(); mesh.scale.setScalar(2); st.add(mesh);
             this.sup.push({ kind: 'rocket', x: a.x, y: a.y - 1.2, z: a.z, target: tg, t: 0, life: 6, mesh });
-            FL.audio.play('laser');
+            FL.audio.play('rocket');
           }
         } else if (a.kind === 'rocket') {
           const tg = a.target, ty = Math.min((tg.h || 3) * 0.4, 3);
@@ -295,6 +295,7 @@
           const k = Math.min(1, a.t / a.T);
           a.x = FL.lerp(a.sx, a.tx, k); a.z = FL.lerp(a.sz, a.tz, k); a.y = 70 * (1 - k * k);
           if (k >= 1) { a.life = 0; this.blast(a.x, a.z, 7, 9); }
+          FL.aimShell(a, a.x, a.y, a.z);
         }
         a.mesh.position.set(a.x, a.y, a.z);
       }
@@ -322,6 +323,7 @@
       const turn = active ? FL.clamp((FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) - FL.stick.x, -1, 1) : 0;
       const tturn = active ? (FL.down('KeyA', 'KeyQ') ? 1 : 0) - (FL.down('KeyD', 'KeyE') ? 1 : 0) : 0;
       this.v = FL.lerp(this.v, fwd * this.maxV, 1 - Math.exp(-3 * dt));
+      FL.audio.engine('tank', Math.min(1, Math.abs(this.v) / this.maxV * 0.8 + Math.abs(fwd) * 0.2), 0);
       this.th = wrap(this.th + turn * this.turnRate * dt);
       this.tu = wrap(this.tu + tturn * 1.5 * dt);
       if (active && FL.down('KeyW', 'KeyS')) this.tu = FL.lerp(this.tu, 0, 1 - Math.exp(-8 * dt));

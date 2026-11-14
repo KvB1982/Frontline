@@ -3,7 +3,7 @@
 // Richtung: Der Kurs th zeigt nach (sin th, cos th). Bei th = 0 liegt +x links im Bild, eine Linkskurve macht th also größer.
 (() => {
   const C = { gold: '#ffc43c', red: '#ef5a4c', green: '#5fd07a', cyan: '#46dcff', text: '#e9eef2', orange: '#ff8c3c', muted: '#9fb0bd' };
-  const GRAV = 40;
+  const GRAV = 40, CEIL = 260;                                     // größte Flughöhe (im Spiel als 2600 m angezeigt)
   // Die eigene Flugbasis liegt südlich vom Zielgebiet. Die Startbahn läuft von Süd (RZ0) nach Nord (RZ1).
   const BX = -260, RZ0 = -1100, RZ1 = -680, GY = 1.7;
   const PARK = { x: -312, z: -1078 }, DOOR = { x: -338, z: -1037 }, START = { x: BX, z: -1085 };
@@ -54,6 +54,7 @@
       this.t = 0; this.kills = 0; this.coins = 0; this.endT = -1; this.lost = false;
       this.x = PARK.x; this.y = GY; this.z = PARK.z; this.th = Math.PI / 2; this.camTh = this.th; this.roll = 0; this.pitch = 0;
       this.speed = 62; this.v = 0; this.floor = 16;
+      this.gearDown = true; this.ab = false; this.gearT = 0; this.lock = null;
       this.phase = 'walk'; this.rtb = false; this.alarmT = 0; this.alarmN = 0; this.bview = null;
       this.walkCam = Math.atan2(PARK.x - DOOR.x, PARK.z - DOOR.z);
       this.turnRate = 0.85 + 0.17 * lo.p_engine;
@@ -69,6 +70,7 @@
       this.ring = this.groundMark('ring', 1);
       this.dot = this.groundMark('glow', 0.8);
       this.dot.material.color.set(0xff5a3c);
+      this.lockMark = FL.sprite(FL.tex.icon('ring'), 1, { depthTest: false }); this.lockMark.material.color.set(0x5fff7a); this.lockMark.visible = false; st.add(this.lockMark);
       this.goalRing = this.groundMark('ring', 1);
       this.goalRing.material = this.goalRing.material.clone(); this.goalRing.material.color.set(0x46dcff);
       this.hero = { x: DOOR.x, z: DOOR.z, th: this.walkCam, mesh: FL.soldier({ team: 'hero', weapon: 0 }) };
@@ -106,14 +108,15 @@
       this.phase = ph;
       const air = ph === 'flight' || ph === 'landing';
       this.setShadow(air ? 230 : 55);
-      if (FL.tilt.air !== (ph === 'flight')) { FL.tilt.air = ph === 'flight'; if (FL.tilt.onChange) FL.tilt.onChange(); }
+      const cockpit = !['walk', 'walkback', 'parked'].includes(ph);
+      if (FL.tilt.air !== (ph === 'flight') || FL.tilt.cockpit !== cockpit) { FL.tilt.air = ph === 'flight'; FL.tilt.cockpit = cockpit; if (FL.tilt.onChange) FL.tilt.onChange(); }
       const H = {
         walk: '← → ↑ ↓ laufen · Lauf zum Flugzeug (blauer Kreis)',
         taxi: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum blauen Kreis auf der Startbahn',
         lineup: 'Das Flugzeug richtet sich aus …',
-        takeoff: '↑ halten = Vollgas · bei genug Tempo ↓ ziehen = abheben',
-        flight: 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : ''),
-        landing: 'Die Landehilfe bringt dich sicher herunter',
+        takeoff: '↑ halten = Vollgas · Umschalt = Nachbrenner · bei genug Tempo ↓ ziehen = abheben',
+        flight: 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · Umschalt Nachbrenner',
+        landing: 'Die Landehilfe bringt dich sicher herunter · G Fahrwerk ausfahren',
         taxiback: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum Parkplatz (blauer Kreis)',
         parked: 'Motor aus …',
         walkback: '← → ↑ ↓ laufen · Geh ins Basisgebäude (blauer Kreis)'
@@ -330,7 +333,17 @@
       // kurz nach dem Abheben steigt das Flugzeug von selbst auf sichere Höhe
       if (this.floor < 16) { this.floor = Math.min(16, this.floor + 8 * dt); climb = Math.max(climb, 0.75); }
       this.th = wrap(this.th + turn * this.turnRate * dt);
-      this.y = FL.clamp(this.y + climb * 24 * dt, this.lost ? 4 : this.floor, 85);
+      this.y = FL.clamp(this.y + climb * 30 * dt, this.lost ? 4 : this.floor, CEIL);
+      // Schub: Schubhebel (Neigesteuerung) oder Umschalt-Taste für den Nachbrenner
+      const thr = this.thr = this.lost ? 0.3 : this.throttle();
+      this.ab = thr > 0.9 && !this.lost;
+      let wantV = this.ab ? 98 : FL.lerp(40, 72, thr / 0.9);
+      if (this.gearDown) wantV = Math.min(wantV, 52);              // ausgefahrenes Fahrwerk bremst
+      this.speed = FL.lerp(this.speed, wantV, 1 - Math.exp(-0.9 * dt));
+      if (this.gearDown && !this.lost && !this.rtb && this.y > GY + 14) {
+        this.gearT -= dt;
+        if (this.gearT <= 0) { this.gearT = 6; FL.hud.msg(FL.touch.active ? 'Fahrwerk einfahren (Knopf „Fahrwerk“)' : 'Fahrwerk einfahren: Taste G', C.cyan, true); }
+      }
       const k = 1 - Math.exp(-5 * dt);
       this.roll = FL.lerp(this.roll, -turn * 0.8, k);
       this.pitch = FL.lerp(this.pitch, -climb * 0.22, k);
@@ -338,7 +351,7 @@
       this.x += sin * this.speed * dt; this.z += cos * this.speed * dt;
       this.place();
       if (!this.lost && this.endT < 0 && !this.rtb) {
-        this.fuel -= dt;
+        this.fuel -= dt * (this.ab ? 2.2 : 1);
         if (this.fuel <= 0) { this.fuel = 0; this.lost = true; this.endT = 2.2; FL.hud.msg('Treibstoff leer: Rückflug!', C.red); }
         else if (this.fuel < 30 && Math.floor(this.fuel) % 10 === 0 && Math.floor(this.fuel + dt) !== Math.floor(this.fuel)) FL.hud.msg('Treibstoff wird knapp!', C.orange, true);
       }
@@ -347,22 +360,42 @@
       const fall = Math.sqrt(2 * this.y / GRAV);
       const bx = this.x + sin * this.speed * fall, bz = this.z + cos * this.speed * fall;
       const bombR = 13 + 4 * lo.p_bomb;
-      this.ring.visible = this.dot.visible = true; this.goalRing.visible = false;
+      this.ring.visible = true; this.goalRing.visible = false;
       this.ring.position.set(bx, 0.4, bz); this.ring.scale.set(bombR * 2, bombR * 2, 1);
       this.ring.material.opacity = this.bombCd <= 0 ? 1 : 0.35;
       const gd = 70 + this.y * 2.4, gx = this.x + sin * gd, gz = this.z + cos * gd;
-      this.dot.position.set(gx, 0.5, gz); this.dot.scale.set(9, 9, 1);
+      // Zielhilfe: Liegt ein Ziel ungefähr voraus, rastet die Bordkanone darauf ein (grüner Punkt)
+      const cone = FL.tilt.on ? 0.34 : 0.22;
+      const tj = this.jets.filter(j => !j.dead && Math.abs(FL.bearing(this.x, this.z, this.th, j.x, j.z)) < cone + 0.1 && Math.hypot(j.x - this.x, j.z - this.z) < 440)[0];
+      let lock = null, best = 1e9;
+      if (!tj) for (const s of this.structures) {
+        if (!s.alive) continue;
+        const d = Math.hypot(s.x - this.x, s.z - this.z);
+        if (d > 200 + this.y * 2.6 || d < 35) continue;
+        const rel = Math.abs(FL.bearing(this.x, this.z, this.th, s.x, s.z));
+        if (rel > cone) continue;
+        const sc = rel * 700 + d * 0.3 - (s.primary ? 150 : s.kind === 'flak' ? 90 : 0) - (s === this.lock ? 60 : 0);
+        if (sc < best) { best = sc; lock = s; }
+      }
+      this.lock = lock;
+      this.dot.position.set(gx, 0.5, gz); this.dot.scale.set(9, 9, 1); this.dot.visible = !lock && !tj;
+      const lt = tj || lock;
+      this.lockMark.visible = !!lt;
+      if (lt) {
+        const ld = Math.hypot(lt.x - this.x, lt.z - this.z), ls = FL.clamp(ld * 0.06, 9, 34) * (1 + Math.sin(this.t * 14) * 0.08);
+        this.lockMark.position.set(lt.x, tj ? tj.y : lock.h * 0.5, lt.z); this.lockMark.scale.set(ls, ls, 1);
+      }
 
       const active = !this.lost && this.endT < 0;
       // Bordkanone: zielt von selbst auf einen Jäger, der vor einem fliegt
       if (active && FL.down('Space') && this.gunCd <= 0) {
         this.gunCd = 0.13 - 0.02 * lo.p_gun;
         let tx = gx, ty = 0, tz = gz;
-        const tj = this.jets.filter(j => !j.dead && Math.abs(FL.bearing(this.x, this.z, this.th, j.x, j.z)) < 0.3 && Math.hypot(j.x - this.x, j.z - this.z) < 420)[0];
         if (tj) { const tt = Math.hypot(tj.x - this.x, tj.z - this.z) / 420; tx = tj.x + tj.vx * tt; ty = tj.y; tz = tj.z + tj.vz * tt; }
+        else if (lock) { tx = lock.x; ty = lock.h * 0.4; tz = lock.z; }
         for (const side of [-1, 1]) {
           const ox = this.x + cos * side * 1.6, oz = this.z - sin * side * 1.6;
-          const dx = tx - ox + FL.rand(-2, 2), dy = ty - this.y, dz = tz - oz + FL.rand(-2, 2), d = Math.hypot(dx, dy, dz);
+          const sp = lock ? 1.2 : 2, dx = tx - ox + FL.rand(-sp, sp), dy = ty - this.y, dz = tz - oz + FL.rand(-sp, sp), d = Math.hypot(dx, dy, dz);
           const mesh = fx.shot(0xffe68c, 0.35, 9);
           this.bullets.push({ x: ox, y: this.y - 0.3, z: oz, vx: dx / d * 420, vy: dy / d * 420, vz: dz / d * 420, dmg: 1 + 0.6 * lo.p_gun, mesh });
         }
@@ -388,7 +421,7 @@
           const tg = pool.length ? pool[(side + 1) / 2 % pool.length].s : null;
           this.rockets.push({ x: this.x + cos * side * 3, y: this.y - 1, z: this.z - sin * side * 3, target: tg, tx: gx, tz: gz, t: 0, mesh });
         }
-        FL.audio.play('laser');
+        FL.audio.play('rocket');
         FL.hud.msg(pool.length ? 'Raketen los!' : 'Raketen ohne Ziel abgefeuert', C.cyan, true);
       }
 
@@ -439,7 +472,7 @@
         for (const a of [AP_N, AP_S]) {
           if (dist(this, a) > 150) continue;
           if (Math.abs(wrap(this.th - a.th)) < 0.8) {
-            this.landDir = a.dir; this.touched = false; this.v = this.speed;
+            this.landDir = a.dir; this.touched = false; this.v = this.speed; this.gearT = 0;
             this.setPhase('landing'); FL.hud.msg('Landeanflug!', C.cyan);
             for (const m of this.apMarks) m.visible = false;
           } else { this.warnT -= dt; if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Flieg in Richtung Landebahn durch den blauen Ring', C.text, true); } }
@@ -461,6 +494,7 @@
         if (this.smokeT <= 0) { this.smokeT = 0.06; fx.puff('smoke', this.x - sin * 5, this.y, this.z - cos * 5, 3.5, 1.2, 0, 1, 0, 2); }
       }
 
+      FL.audio.engine('jet', 0.35 + 0.65 * Math.min(1, thr / 0.9), this.ab ? 1 : 0);
       if (this.endT >= 0) { this.endT -= dt; if (this.endT <= 0) this.result = this.lost ? 'lose' : 'win'; }
       fx.update(dt);
       this.updateCamera(dt);
@@ -518,7 +552,7 @@
         }
       } else if (ph === 'taxi' || ph === 'taxiback') {
         goal = ph === 'taxi' ? START : PARK;
-        const want = ky > 0.3 ? 15 : ky < -0.3 ? -4 : 0;
+        const want = ky > 0.3 ? 15 : ky < -0.3 ? -4 : FL.throttle.on ? Math.min(1, FL.throttle.v / 0.9) * 16 : 0;
         this.v += FL.clamp(want - this.v, -16 * dt, 9 * dt);
         this.th = wrap(this.th + kx * 1.15 * FL.clamp(this.v / 5, -1, 1) * dt);
         const ox = this.x, oz = this.z;
@@ -541,15 +575,18 @@
         this.x = FL.lerp(f.x, START.x, e); this.z = FL.lerp(f.z, START.z, e); this.th = f.th + wrap(0 - f.th) * e; this.v = 0;
         if (k >= 1) { this.th = 0; if (FL.tilt.on) FL.tilt.center(true); this.setPhase('takeoff'); FL.hud.msg('Start frei!', C.gold); FL.hud.msg('Gas geben', C.text, true); }
       } else if (ph === 'takeoff') {
-        const gas = ky > 0.3, pull = ky < -0.3 || (FL.tilt.on && FL.tilt.climb > 0.35);
-        this.v = FL.clamp(this.v + (gas || this.v > 45 ? 13 : -10) * dt, 0, 62);
+        const thr = this.thr = FL.throttle.on ? FL.throttle.v : ky > 0.3 ? (FL.down('ShiftLeft', 'ShiftRight') ? 1 : 0.8) : 0;
+        const gas = thr > 0.25, pull = ky < -0.3 || (FL.tilt.on && FL.tilt.climb > 0.35);
+        this.ab = thr > 0.9;
+        const acc = this.ab ? 20 : FL.throttle.on ? 5 + 10 * thr : 13;
+        this.v = FL.clamp(this.v + (gas ? acc : this.v > 45 ? 6 : -10) * dt, 0, this.ab ? 75 : 62);
         this.z += this.v * dt; this.x = BX; this.th = 0;
         if (this.v > 8 && Math.random() < dt * 14) fx.puff('dust', this.x + FL.rand(-2, 2), 0.6, this.z - 6, 3, 0.8, 0, 1, -this.v * 0.2, 1.6);
         if (this.v > 5 && !this.roared) { this.roared = true; FL.audio.play('jet'); }
         if (this.v >= 45 && !this.rotMsg) { this.rotMsg = true; FL.hud.msg('Jetzt ziehen: abheben!', C.cyan); }
         this.pitch = FL.lerp(this.pitch, this.v >= 45 ? -0.12 : 0, 1 - Math.exp(-4 * dt));
         if (this.v >= 45 && (pull || this.v >= 61.5 || this.z > RZ1 - 90)) {
-          this.floor = GY; this.setPhase('flight');
+          this.floor = GY; this.speed = this.v; this.gearT = 5; this.setPhase('flight');
           FL.hud.msg('Abgehoben!', C.green); FL.hud.msg('Zerstöre alle markierten Ziele!', C.gold, true);
         }
       } else if (ph === 'landing') {
@@ -559,11 +596,20 @@
         const ty = s < 0 ? GY + -s * 0.13 : GY;
         this.y += FL.clamp(ty - this.y, -22 * dt, 4 * dt);
         const ground = this.y <= GY + 0.05 && s > -8;
+        const lthr = this.thr = FL.throttle.on ? FL.throttle.v : 0.4;
+        this.ab = false;
+        if (!this.gearDown && !ground) { this.gearT -= dt; if (this.gearT <= 0) { this.gearT = 2.5; FL.audio.play('alarm'); FL.hud.msg(FL.touch.active ? 'Fahrwerk ausfahren! (Knopf „Fahrwerk“)' : 'Fahrwerk ausfahren! Taste G', C.red, true); } }
         if (ground) {
           this.y = GY;
+          if (!this.touched && !this.gearDown) {
+            // ohne Fahrwerk aufgesetzt: Es rumpelt und kostet Panzerung, die Mechaniker fahren es dann aus
+            this.gearDown = true; this.hp = Math.max(1, this.hp - 3); this.shake = 0.8; FL.hud.damage(0.7); FL.audio.play('boom');
+            for (let i = 0; i < 14; i++) fx.spark(this.x + FL.rand(-3, 3), 0.6, this.z + FL.rand(-4, 4), 6);
+            FL.hud.msg('Bauchlandung! Fahrwerk vergessen', C.red);
+          }
           if (!this.touched) { this.touched = true; this.shake = 0.3; FL.audio.play('hit'); for (let i = 0; i < 6; i++) fx.puff('white', this.x + FL.rand(-3, 3), 0.6, this.z, 3, 0.9, 0, 1.5, 0, 1.8); FL.hud.msg('Aufgesetzt!', C.green, true); }
-          this.v = Math.max(9, this.v - 11 * dt);
-        } else this.v = FL.lerp(this.v, 46, 1 - Math.exp(-1.2 * dt));
+          this.v = Math.max(9, this.v - (lthr > 0.5 ? 5 : 11) * dt);
+        } else this.v = FL.lerp(this.v, FL.lerp(38, 56, Math.min(1, lthr / 0.9)), 1 - Math.exp(-1.2 * dt));
         this.x += Math.sin(this.th) * this.v * dt; this.z += Math.cos(this.th) * this.v * dt;
         const k = 1 - Math.exp(-5 * dt);
         this.roll = FL.lerp(this.roll, ground ? 0 : -FL.clamp(dth / dt, -1, 1) * 0.5, k);
@@ -579,8 +625,11 @@
           this.setPhase('walkback'); FL.hud.msg('Ausgestiegen. Geh ins Basisgebäude', C.gold, true);
         }
       }
+      if (ph === 'taxi' || ph === 'taxiback' || ph === 'lineup') { this.ab = false; this.thr = 0; FL.audio.engine('jet', 0.12 + 0.25 * Math.min(1, Math.abs(this.v) / 15), 0); }
+      else if (ph === 'takeoff') FL.audio.engine('jet', 0.15 + 0.85 * Math.min(1, this.thr / 0.9), this.ab ? 1 : 0);
+      else if (ph === 'landing') FL.audio.engine('jet', 0.25 + 0.4 * this.thr, 0);
       this.place();
-      this.ring.visible = false; this.dot.visible = false;
+      this.ring.visible = false; this.dot.visible = false; this.lockMark.visible = false;
       this.goalRing.visible = !!goal;
       if (goal) { const sc = (goal === DOOR ? 5 : 11) * (1 + Math.sin(this.t * 5) * 0.1); this.goalRing.position.set(goal.x, 0.3, goal.z); this.goalRing.scale.set(sc, sc, 1); }
       this.goal = goal;
@@ -602,7 +651,19 @@
       this.jet.position.set(this.x, this.y, this.z);
       this.jet.rotation.set(this.pitch, this.th, this.roll);
       this.jet.visible = !(this.invuln > 0 && Math.floor(this.t * 14) % 2);
-      this.jet.userData.gear.visible = this.y < GY + 6;
+      this.jet.userData.gear.visible = this.gearDown;
+      const fl = this.jet.userData.flame;
+      if (fl) { const k = this.ab ? 2.6 + Math.random() * 0.6 : 1; fl.scale.setScalar((fl.userData.s0 || (fl.userData.s0 = fl.scale.x)) * k); }
+    }
+    throttle() { return FL.throttle.on ? FL.throttle.v : FL.down('ShiftLeft', 'ShiftRight') ? 1 : 0.62; }
+    toggleGear() {
+      const ph = this.phase;
+      if (ph !== 'flight' && ph !== 'landing') return;
+      if (ph === 'landing' && this.touched) return;
+      if (this.y < GY + 5 && this.gearDown) return;
+      this.gearDown = !this.gearDown; this.gearT = 6;
+      FL.audio.play('gear');
+      FL.hud.msg(this.gearDown ? 'Fahrwerk ausgefahren' : 'Fahrwerk eingefahren', C.cyan, true);
     }
 
     // Flak: Die Granaten platzen dort, wo das Flugzeug bei geradem Flug gleich wäre. Kurven und Höhe wechseln hilft.
@@ -700,7 +761,8 @@
       H.set(this.hTL, `<div class="hud-big"><span class="coins">${this.coins}</span></div>` +
         `<div>Panzerung</div>${H.meter(hp, hp < 0.35 ? 'red' : hp < 0.65 ? 'gold' : '')}` +
         `<div>Treibstoff</div>${H.meter(fuel, fuel < 0.2 ? 'red' : 'cyan')}` +
-        `<div>Höhe ${Math.round(Math.max(0, this.y - GY) * 10)} m</div>`);
+        `<div>Höhe ${Math.round(Math.max(0, this.y - GY) * 10)} m</div>` +
+        (this.phase === 'flight' || this.phase === 'landing' || this.phase === 'takeoff' ? `<div>Schub ${this.ab ? '<b style="color:#ff8c3c">NACHBRENNER</b>' : Math.round(Math.min(1, (this.thr || 0) / 0.9) * 100) + ' %'} · Fahrwerk ${this.gearDown ? '<b style="color:#46dcff">aus</b>' : 'ein'}</div>` : ''));
       let tc = `<div>Ziele: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
       const next = this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
       const ph = this.phase, walking = ph === 'walk' || ph === 'walkback';
@@ -730,7 +792,7 @@
       FL.drawMinimap(this.map, me.x, me.z, myTh, air ? 520 : 120, items);
     }
 
-    onKey() {}
+    onKey(code) { if (code === 'KeyG') this.toggleGear(); }
     destroy() { FL.tilt.air = false; this.stage.dispose(); }
   };
 })();

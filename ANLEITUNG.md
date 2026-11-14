@@ -118,7 +118,7 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 | Einsatz | Tasten |
 | --- | --- |
 | Bodenkampf | ← → bewegen, Leertaste schießen, ↓ Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, X Geschütze abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie, V vorrücken |
-| Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen |
+| Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen, G Fahrwerk ein/aus, Umschalt halten = Nachbrenner |
 | Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone, 1 2 3 4 Unterstützung anfordern: Drohnen, Hubschrauber, Bomber, Artillerie |
 | Immer | P oder Esc Pause, M Ton an/aus |
 
@@ -130,6 +130,14 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 - Im Panzer rastet das rote Fadenkreuz auf ein Ziel ein, wenn du ungefähr in die Richtung zielst. Bleib in Bewegung, dann wirst du seltener getroffen. Kisten mit Schraubenschlüssel reparieren den Panzer.
 - Vor der gegnerischen Basis zielt dein Soldat von selbst auf das nächste Gebäude, wenn kein Gegner vor ihm steht.
 - Wenn das Spiel ruckelt: im Hauptmenü bei „Grafik“ auf „schnell“ stellen.
+
+## Flugzeug: Schub, Fahrwerk und Zielhilfe
+
+- Das Flugzeug steigt jetzt bis 2600 m. Oben ist man vor der Flak sicherer, unten trifft man leichter.
+- Zielhilfe: Liegt ein Ziel ungefähr voraus, erscheint ein grüner Ring darauf. Die Bordkanone trifft dann genau dieses Ziel, auch wenn die Nase nicht exakt darauf zeigt.
+- Fahrwerk: Nach dem Abheben mit G (iPad: Knopf „Fahrwerk“) einfahren, sonst bleibt das Flugzeug langsam. Vor der Landung wieder ausfahren, sonst gibt es eine Bauchlandung und die kostet Panzerung.
+- Nachbrenner: macht das Flugzeug viel schneller, verbraucht aber mehr als doppelt so viel Treibstoff.
+- iPad mit Neigesteuerung: Links erscheint ein Schubhebel. Ganz unten ist Leerlauf, im orangen Feld ganz oben zündet der Nachbrenner. Der Hebel gilt beim Rollen, Starten, Fliegen und Landen. Auf dem freien Bildschirm nach unten wischen wirft eine Bombe, nach oben wischen feuert die Raketen.
 
 ## Modelle
 
