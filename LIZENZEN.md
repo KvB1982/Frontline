@@ -11,17 +11,26 @@ Die Fahrzeuge und Flugzeuge stammen von Sketchfab. Für das Spiel wurden sie ver
 | Gegnerische Geländewagen | [Low Poly Humvee vehicle](https://sketchfab.com/3d-models/low-poly-humvee-vehicle-fac4178dc3db4eb9abf7f45425125e1e) | [Duane's Mind](https://sketchfab.com/duanesmind) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Kampfhubschrauber | [AH-64 Apache Attack Helicopter Low Poly](https://sketchfab.com/3d-models/ah-64-apache-attack-helicopter-low-poly-34986214decd4b3db90e91f12e624d78) | [PolyDucky](https://sketchfab.com/salphytheunemployed) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Gegnerische Flugzeuge | [Modern Jet Fighter Low Poly Game Ready Free](https://sketchfab.com/3d-models/modern-jet-fighter-low-poly-game-ready-free-cd2bd715dcd14dc4b47ebaeb2403fb89) | [Hdjusj](https://sketchfab.com/Hdjusj) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| Bäume | [Low poly trees](https://sketchfab.com/3d-models/low-poly-trees-51cae4a194344e8bbfbd0a4cff205f76) | [Aditya Graphical](https://sketchfab.com/Adityakm) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| Palmen | [low poly Palm tree](https://sketchfab.com/3d-models/low-poly-palm-tree-10365d785677428291aecc4464bf0f2d) | [lucq22](https://sketchfab.com/lucq22) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| Radar | [Low-Poly Radar Dish](https://sketchfab.com/3d-models/low-poly-radar-dish-ed6850e61792430581c8f9851fb7b4c5) | [joe_carrot](https://sketchfab.com/joe_carrot) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| Zelte | [Military Tent](https://sketchfab.com/3d-models/military-tent-d0d6d9a9f5ab4939932dd27bbaa5ca7d) | [Khata](https://sketchfab.com/Khatagames) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| Wachtürme | [Game Ready Military Base Asset Pack](https://sketchfab.com/3d-models/game-ready-military-base-asset-pack-47c0a32b43bf42abbb743458fbd95114) | [Oxygen3D](https://sketchfab.com/oxygen3d) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Eigenes Flugzeug und Kampfbomber | [Eurofighter Typhoon - Fighter Jet - Free](https://sketchfab.com/3d-models/eurofighter-typhoon-fighter-jet-free-992bcc8987964ca09d55410330aa8579) | [bohmerang](https://sketchfab.com/bohmerang) | [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) |
 
 Wichtig: Der Eurofighter darf nur nicht-kommerziell genutzt werden. Für das kostenlose Spiel ist das in Ordnung. Vor einer bezahlten Veröffentlichung (zum Beispiel im App Store) muss er gegen ein anderes Modell getauscht werden. Die verkleinerte Fassung in `models/jet.js` steht wie das Original unter CC BY-NC-SA 4.0.
 
 ## Geräusche
 
-Triebwerk, Nachbrenner, Panzermotor und Kanonenschüsse sind Aufnahmen von Pixabay (Pixabay-Inhaltslizenz: frei nutzbar, auch ohne Namensnennung). Sie wurden gekürzt und zu Schleifen geschnitten und stecken in `sounds/pack.js`.
+Triebwerk, Nachbrenner, Panzermotor, Schüsse, Raketen und Explosionen sind Aufnahmen von Pixabay (Pixabay-Inhaltslizenz: frei nutzbar, auch ohne Namensnennung). Sie wurden gekürzt und zu Schleifen geschnitten und stecken in `sounds/pack.js`.
 
 - „Tank moving“ von dennish18
 - „Distant tank shots“ und „Propulsion jet engine“ von freesound_community
 - „Fighter jet taking off“ von spinopel
+- „Clean machine gun burst“ von freesound_community (Bordkanone und Gewehre)
+- „Gun shot“ von u_62htdrvg4y (Schüsse der Gegner)
+- „Rocket launcher“ von 49053354 (Raketen)
+- „Explosion FX“ von soundreality, „Missile boom“ von u_cps9x2omzt und „Bomb explosion“ von wings_of_freedom (Explosionen)
 
 Alle anderen Töne erzeugt das Spiel selbst.
 

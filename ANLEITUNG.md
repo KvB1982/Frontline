@@ -149,7 +149,10 @@ Wer neben der Bahn, schräg oder zu spät aufsetzt, startet automatisch durch un
 
 ## Panzer auf dem iPad
 
-Auf dem freien Bildschirm nach links oder rechts wischen dreht den Turm. Nach oben wischen stellt ihn wieder geradeaus.
+- Tippen irgendwo auf den freien Bildschirm feuert einen Schuss.
+- Nach links oder rechts wischen dreht den Turm. Der Knopf „Mitte“ stellt ihn wieder geradeaus.
+- Nach oben wischen hebt die Kanone, nach unten wischen senkt sie. Das Zielkreuz wandert dabei weiter weg oder näher heran (oben links steht die „Zielweite“). Steht die Kanone zu tief, reicht der Schuss nicht bis zu weit entfernten Zielen.
+- Am PC: R und F oder das Mausrad für die Kanone, Mausklick oder Leertaste für den Schuss.
 
 ## Flugzeug: Schub, Fahrwerk und Zielhilfe
 
@@ -159,9 +162,20 @@ Auf dem freien Bildschirm nach links oder rechts wischen dreht den Turm. Nach ob
 - Nachbrenner: macht das Flugzeug viel schneller, verbraucht aber mehr als doppelt so viel Treibstoff.
 - iPad mit Neigesteuerung: Links erscheint ein Schubhebel. Ganz unten ist Leerlauf, im orangen Feld ganz oben zündet der Nachbrenner. Der Hebel gilt beim Rollen, Starten, Fliegen und Landen. Auf dem freien Bildschirm nach unten wischen wirft eine Bombe, nach oben wischen feuert die Raketen.
 
+## Frei fliegen: Looping, Rolle, Rückenflug
+
+- Das Flugzeug lässt sich in alle Richtungen steuern. Ziehen (Pfeil runter, Knüppel nach hinten, iPad zu sich kippen) hebt die Nase, und zwar immer aus Sicht des Flugzeugs. Wer weiter zieht, fliegt einen Looping.
+- Leicht nach links oder rechts: Schräglage und Kurve. Für die Rolle um die Längsachse gibt es Q und E (iPad: die Knöpfe „Rolle ◀“ und „Rolle ▶“, mit Neigesteuerung auch das iPad sehr weit zur Seite kippen). Lässt man auf dem Rücken los, fliegt es auf dem Rücken weiter.
+- Steil nach oben kostet Tempo, im Sturzflug wird das Flugzeug schneller. Kurz vor dem Boden fängt es sich von selbst ab („Abfangen!“), abstürzen kann man dadurch nicht.
+- Bordkanone: irgendwo auf den freien Bildschirm tippen oder den Finger halten (am PC Mausklick oder Leertaste). Wischen nach unten wirft weiter die Bombe, nach oben die Raketen.
+
+## Einsatzorte
+
+Der Einsatzort liegt bei jedem Flug woanders: 1,5 bis 2,6 km von der Basis entfernt, in einer zufälligen Richtung und in einer von vier Landschaften (Berge, Wald, Meer, Wüste). Nach dem Start steht oben die Richtung und Entfernung, auf dem Radar zeigt ein gelber Ring den Einsatzort, der grüne Punkt ist die eigene Basis.
+
 ## Modelle
 
-Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sketchfab (SPz Puma, T-62, Humvee, Apache, Eurofighter und ein moderner Kampfjet). Beim ersten Start eines Einsatzes werden sie kurz geladen. Wer sie gebaut hat und unter welcher Lizenz sie stehen, steht in `LIZENZEN.md` und im Spiel unter „Quellen“ im Hauptmenü.
+Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sketchfab (SPz Puma, T-62, Humvee, Apache, Eurofighter und ein moderner Kampfjet). Dazu kommen Bäume, Palmen, Zelte, Radar und Wachtürme von Sketchfab. Beim ersten Start eines Einsatzes werden sie kurz geladen. Wer sie gebaut hat und unter welcher Lizenz sie stehen, steht in `LIZENZEN.md` und im Spiel unter „Quellen“ im Hauptmenü.
 
 ## Auf dem iPad spielen
 

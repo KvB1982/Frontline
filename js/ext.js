@@ -11,7 +11,17 @@
     humvee: { size: 4.9,  yaw: 0, bottom: 0 },
     apache: { size: 12.5, yaw: 0, bottom: -1.9 },
     jet:    { size: 12.5, yaw: -Math.PI / 2, bottom: -1.5 },
-    ejet:   { size: 12,   yaw: -Math.PI / 2, bottom: -0.9 }
+    ejet:   { size: 12,   yaw: -Math.PI / 2, bottom: -0.9 },
+    // Deko aus models/deko.js: hier zählt die Höhe (high) statt der Länge
+    palm:   { high: 6.6, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
+    tree1:  { high: 8.2, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
+    tree9:  { high: 7.4, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
+    tree4:  { high: 6.4, yaw: 0, bottom: -0.3, file: 'deko', flat: true },
+    tree6:  { high: 7.6, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
+    tree11: { high: 5.0, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
+    tent:   { size: 6.2, yaw: 0, bottom: -0.03, file: 'deko' },
+    radar:  { high: 6.6, yaw: 0, bottom: 0, file: 'deko' },
+    wtower: { high: 8.8, yaw: 0, bottom: 0, file: 'deko' }
   };
   const X = FL.ext = { tpl: {}, done: false, waiting: [], DEF };
   const norm = s => String(s || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -31,7 +41,7 @@
     const d = DEF[name], mats = new Map();
     scene.traverse(o => {
       if (!o.isMesh) return;
-      if (!mats.has(o.material)) mats.set(o.material, simple(o.material));
+      if (!mats.has(o.material)) { const nm = simple(o.material); if (d.flat) { nm.flatShading = true; o.geometry.computeVertexNormals(); } mats.set(o.material, nm); }
       o.material = mats.get(o.material); o.castShadow = true; o.receiveShadow = false;
     });
     const hold = new THREE.Group(); hold.add(scene);
@@ -39,7 +49,7 @@
     if (name === 'jet') { const off = find(scene, 'LandingOff'); if (off) off.visible = false; }       // mit ausgefahrenem Fahrwerk vermessen
     hold.updateMatrixWorld(true);
     let box = new THREE.Box3().setFromObject(hold), size = box.getSize(new THREE.Vector3());
-    const s = d.size / size.z;
+    const s = d.high ? d.high / size.y : d.size / size.z;
     scene.scale.multiplyScalar(s);
     hold.updateMatrixWorld(true);
     box = new THREE.Box3().setFromObject(hold);
@@ -52,12 +62,14 @@
   X.load = () => {
     if (X.promise) return X.promise;
     const names = Object.keys(DEF);
-    const one = name => script('models/' + name + '.js').then(() => new Promise((ok, fail) => {
+    const got = {};
+    const one = name => { const f = DEF[name].file || name; return got[f] || (got[f] = script('models/' + f + '.js')); };
+    const one2 = name => one(name).then(() => new Promise((ok, fail) => {
       const data = FL.GLB && FL.GLB[name];
       if (!data || !THREE.GLTFLoader) return fail(new Error('fehlt'));
       new THREE.GLTFLoader().parse(b64(data), '', g => { delete FL.GLB[name]; prepare(name, g.scene); ok(); }, fail);
     })).catch(e => { console.warn('Modell ' + name + ' nicht geladen', e && e.message); });
-    X.promise = names.reduce((p, n) => p.then(() => one(n)), Promise.resolve()).then(() => { X.done = true; for (const f of X.waiting.splice(0)) f(); });
+    X.promise = names.reduce((p, n) => p.then(() => one2(n)), Promise.resolve()).then(() => { X.done = true; for (const f of X.waiting.splice(0)) f(); });
     return X.promise;
   };
   // ruft fn auf, sobald alle Modelle da sind (spätestens nach 12 Sekunden, dann eben mit den einfachen Modellen)
@@ -105,5 +117,27 @@
     u.gear = { get visible() { return on ? on.visible : false; }, set visible(v) { if (on) on.visible = v; if (off) off.visible = !v; if (light) light.visible = v; } };
     u.gear.visible = false;
     return g;
+  };
+  // Bäume: im Bodenkampf und beim Panzer die Sketchfab-Bäume, aus dem Flugzeug (simple) die einfachen, weil dort sehr viele stehen
+  const TREES = { pine: ['tree1', 'tree9'], leaf: ['tree4', 'tree6'], palm: ['palm'], deadtree: ['tree11'] };
+  const oldTree = FL.tree, oldBuilding = FL.building;
+  FL.tree = (kind, rnd, simple) => {
+    const list = TREES[kind];
+    rnd = rnd || Math.random;
+    const g = !simple && list ? make(list[Math.floor(rnd() * list.length) % list.length]) : null;
+    if (!g) return oldTree(kind, rnd);
+    g.scale.setScalar(0.8 + rnd() * 0.6); g.rotation.y = rnd() * 6.28;
+    return g;
+  };
+  // Gebäude: Zelt, Radar und Wachturm kommen als Modell, alles andere bleibt wie bisher
+  const BUILD = { tent: 'tent', radar: 'radar', tower: 'wtower' };
+  FL.building = (kind, theme, opt) => {
+    const base = oldBuilding(kind, theme, opt), g = BUILD[kind] ? make(BUILD[kind]) : null;
+    if (!g) return base;
+    const hold = new THREE.Group(); hold.add(g);
+    Object.assign(hold.userData, base.userData);
+    if (kind === 'radar') hold.userData.spin = g;
+    if (kind === 'tower') { delete hold.userData.flag; }
+    return hold;
   };
 })();

@@ -58,6 +58,16 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { FL.keys[e.code] = false; });
 window.addEventListener('blur', () => { FL.keys = {}; });
 FL.down = (...codes) => codes.some(c => FL.keys[c]);
+// Maus: Klick ins Spielbild feuert (wie die Leertaste), das Mausrad stellt beim Panzer die Kanone höher oder tiefer
+FL.wheel = 0;
+window.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  const t = e.target;
+  if (t && t.closest && t.closest('button, a, input, select, .btn, .screen, .menu, .touch-layer, .pausebtn')) return;
+  FL.keys.Mouse0 = true;
+});
+window.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') FL.keys.Mouse0 = false; });
+window.addEventListener('wheel', e => { FL.wheel += e.deltaY; }, { passive: true });
 
 // ---------------------------------------------------------------- Töne (im Browser erzeugt, keine Dateien nötig)
 FL.audio = {
@@ -202,17 +212,22 @@ FL.audio = {
     this.last[name] = now;
     const B = (...a) => this.burst(...a), T = (...a) => this.tone(...a);
     switch (name) {
-      case 'shot': B(0.1, 0.3, 3400); B(0.035, 0.22, 6500, 1.5, 0, 'bandpass', 4000); T(210, 0.06, 'square', 0.07, -140); T(75, 0.09, 'sine', 0.16, -35); break;
-      case 'eshot': B(0.08, 0.09, 2200); T(120, 0.06, 'sine', 0.05, -50); break;
+      case 'shot': if (this.sample('mg' + (1 + Math.floor(Math.random() * 3)), 0.55, (0.94 + Math.random() * 0.12))) break;
+        B(0.1, 0.3, 3400); B(0.035, 0.22, 6500, 1.5, 0, 'bandpass', 4000); T(210, 0.06, 'square', 0.07, -140); T(75, 0.09, 'sine', 0.16, -35); break;
+      case 'eshot': if (this.sample('gun', 0.2, 1.12 + Math.random() * 0.2)) break;
+        B(0.08, 0.09, 2200); T(120, 0.06, 'sine', 0.05, -50); break;
       case 'laser': T(1300, 0.1, 'sawtooth', 0.05, -900); break;
-      case 'rocket': B(0.9, 0.34, 900, 1.6, 0, 'bandpass', 3200); B(0.12, 0.3, 2500); T(140, 0.5, 'sawtooth', 0.05, 260); break;
+      case 'rocket': if (this.sample('rocket', 0.8, (0.94 + Math.random() * 0.12))) break;
+        B(0.9, 0.34, 900, 1.6, 0, 'bandpass', 3200); B(0.12, 0.3, 2500); T(140, 0.5, 'sawtooth', 0.05, 260); break;
       case 'hit': B(0.05, 0.12, 3000, 2, 0, 'bandpass'); T(420, 0.05, 'square', 0.04, -150); break;
       case 'ouch': B(0.16, 0.3, 1400); T(180, 0.18, 'square', 0.1, -110); T(60, 0.2, 'sine', 0.25, -20); break;
       case 'pop': B(0.22, 0.2, 1200); T(110, 0.16, 'sine', 0.14, -50); break;
       case 'cannon': if (this.sample('shot' + (1 + Math.floor(Math.random() * 4)), 1.0, 0.92 + Math.random() * 0.16)) { B(0.05, 0.3, 6000, 1, 0, 'bandpass', 2500); T(60, 0.35, 'sine', 0.3, -25); break; }
         B(0.06, 0.5, 6000, 1, 0, 'bandpass', 2500); B(0.55, 0.6, 1300); T(120, 0.3, 'sine', 0.45, -80); T(52, 0.55, 'sine', 0.35, -20); B(1.3, 0.12, 500, 0.7, 0.12); break;
-      case 'boom': B(0.05, 0.4, 5000, 1, 0, 'bandpass', 2000); B(0.9, 0.7, 1000); T(78, 0.55, 'sine', 0.5, -45); B(1.8, 0.16, 380, 0.7, 0.18); B(0.3, 0.1, 3500, 3, 0.06, 'bandpass'); break;
-      case 'bigboom': B(0.07, 0.5, 5000, 1, 0, 'bandpass', 1800); B(1.5, 0.85, 800); T(60, 1.0, 'sine', 0.6, -32); T(42, 1.3, 'sine', 0.4, -10, 0.18); B(2.6, 0.2, 320, 0.7, 0.25); B(0.5, 0.12, 3000, 3, 0.1, 'bandpass'); B(0.4, 0.1, 2400, 3, 0.45, 'bandpass'); break;
+      case 'boom': if (this.sample(Math.random() < 0.5 ? 'boom1' : 'boom2', 0.8, 0.9 + Math.random() * 0.2)) break;
+        B(0.05, 0.4, 5000, 1, 0, 'bandpass', 2000); B(0.9, 0.7, 1000); T(78, 0.55, 'sine', 0.5, -45); B(1.8, 0.16, 380, 0.7, 0.18); B(0.3, 0.1, 3500, 3, 0.06, 'bandpass'); break;
+      case 'bigboom': if (this.sample('bigboom', 0.9, (0.94 + Math.random() * 0.12))) { T(50, 1.0, 'sine', 0.35, -22); break; }
+        B(0.07, 0.5, 5000, 1, 0, 'bandpass', 1800); B(1.5, 0.85, 800); T(60, 1.0, 'sine', 0.6, -32); T(42, 1.3, 'sine', 0.4, -10, 0.18); B(2.6, 0.2, 320, 0.7, 0.25); B(0.5, 0.12, 3000, 3, 0.1, 'bandpass'); B(0.4, 0.1, 2400, 3, 0.45, 'bandpass'); break;
       case 'ping': T(1600, 0.06, 'triangle', 0.05, -500); break;
       case 'up': T(520, 0.1, 'square', 0.07); T(780, 0.18, 'square', 0.07, 0, 0.1); break;
       case 'coin': T(990, 0.07, 'triangle', 0.09); T(1320, 0.2, 'triangle', 0.09, 0, 0.07); break;

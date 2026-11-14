@@ -8,7 +8,12 @@
   const BX = -260, RZ0 = -1100, RZ1 = -680, GY = 1.7;
   const PARK = { x: -312, z: -1078 }, DOOR = { x: -338, z: -1037 }, START = { x: BX, z: -1085 };
   const AP_N = { x: BX, z: RZ1 + 220, th: Math.PI, dir: -1 }, AP_S = { x: BX, z: RZ0 - 220, th: 0, dir: 1 };
-  const MID = { x: -130, z: -450 }, MIDR = 1350;
+  const BASE_C = { x: BX, z: (RZ0 + RZ1) / 2 };
+  const BIOMES = { berge: 'in den Bergen', wald: 'im Wald', meer: 'am Meer', wueste: 'in der Wüste' };
+  const Y_AXIS = new THREE.Vector3(0, 1, 0), X_AXIS = new THREE.Vector3(1, 0, 0), Z_AXIS = new THREE.Vector3(0, 0, 1);
+  const QA = new THREE.Quaternion(), QT = new THREE.Quaternion(), M4 = new THREE.Matrix4(), T1 = new THREE.Vector3(), T2 = new THREE.Vector3(), T3 = new THREE.Vector3();
+  // Drehung, bei der die Nase nach f zeigt und die Flügel waagrecht liegen
+  const levelQuat = f => { T2.crossVectors(Y_AXIS, f).normalize(); T3.crossVectors(f, T2); M4.makeBasis(T2, T3, f); return QT.setFromRotationMatrix(M4); };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 
@@ -29,8 +34,8 @@
       let f = dx * sin + dz * cos, l = dx * cos - dz * sin;
       const d = Math.hypot(f, l);
       if (d > range) { if (!it.far) continue; f *= range / d; l *= range / d; }
-      g.fillStyle = it.color;
-      g.beginPath(); g.arc(c - l * k, c - f * k, it.size || 3, 0, 7); g.fill();
+      g.beginPath(); g.arc(c - l * k, c - f * k, it.size || 3, 0, 7);
+      if (it.ring) { g.strokeStyle = it.color; g.lineWidth = 2.5; g.stroke(); } else { g.fillStyle = it.color; g.fill(); }
     }
     g.fillStyle = '#fff';
     g.beginPath(); g.moveTo(c, c - 8); g.lineTo(c - 5, c + 6); g.lineTo(c + 5, c + 6); g.closePath(); g.fill();
@@ -61,7 +66,10 @@
       this.gearDown = true; this.ab = false; this.gearT = 0; this.lock = null;
       this.phase = 'walk'; this.rtb = false; this.alarmT = 0; this.alarmN = 0; this.bview = null;
       this.walkCam = Math.atan2(PARK.x - DOOR.x, PARK.z - DOOR.z);
-      this.turnRate = 0.85 + 0.17 * lo.p_engine;
+      this.turnRate = 0.85 + 0.17 * lo.p_engine; this.pitchRate = 1.05 + 0.1 * lo.p_engine;
+      // Fluglage: q dreht das Flugzeug, F = nach vorn, U = nach oben, L = zur linken Tragfläche
+      this.q = new THREE.Quaternion(); this.F = new THREE.Vector3(0, 0, 1); this.U = new THREE.Vector3(0, 1, 0); this.L = new THREE.Vector3(1, 0, 0);
+      this.camF = new THREE.Vector3(0, 0, 1); this.camU = new THREE.Vector3(0, 1, 0); this.recov = false;
       this.hpMax = this.hp = 10 + 3 * lo.p_armor;
       this.fuelMax = this.fuel = (210 + 40 * lo.p_engine + 15 * this.tier) * (sc.fuel || 1);
       this.gunCd = 0; this.bombCd = 0; this.rocketCd = 0; this.shake = 0; this.warnT = 0; this.invuln = 0; this.smokeT = 0; this.jetCd = sc.jets ? 9 : 25;
@@ -110,6 +118,7 @@
     }
     setPhase(ph) {
       this.phase = ph;
+      if (ph === 'flight') { this.q.setFromEuler(new THREE.Euler(this.pitch, this.th, this.roll, 'YXZ')); this.F.set(0, 0, 1).applyQuaternion(this.q); this.camF.copy(this.F); this.camU.set(0, 1, 0); }
       const air = ph === 'flight' || ph === 'landing';
       this.setShadow(air ? 230 : 55);
       const cockpit = !['walk', 'walkback', 'parked'].includes(ph);
@@ -119,7 +128,7 @@
         taxi: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum blauen Kreis auf der Startbahn',
         lineup: 'Das Flugzeug richtet sich aus …',
         takeoff: '↑ halten = Vollgas · Umschalt = Nachbrenner · bei genug Tempo ↓ ziehen = abheben',
-        flight: 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · Umschalt Nachbrenner',
+        flight: 'Steuerknüppel: ← → Schräglage und Kurve · Q E Rolle · ↓ ziehen = Nase hoch (halten = Looping) · ↑ = Nase runter · Leertaste oder Mausklick Bordkanone · B Bombe' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · G Fahrwerk · Umschalt Nachbrenner',
         landing: 'Aufgesetzt: Das Flugzeug bremst und rollt aus',
         taxiback: '↑ Gas · ↓ bremsen · ← → lenken · Roll zum Parkplatz (blauer Kreis)',
         parked: 'Motor aus …',
@@ -137,19 +146,30 @@
 
     // ---------------------------------------------------------------- Aufbau
     buildWorld() {
-      const th = this.cfg.theme, st = this.stage, tier = this.tier, sc = this.sc, rnd = FL.seeded(71 + Math.round(tier * 10) + th.length * 3 + (sc.seed || 0));
-      st.ground(9000, FL.tex.fields(th), 420);
-      st.add(st.strip(13, 2400, FL.tex.road(th), 13, 12, 0, 0, 0.08));
-      const cross = st.strip(13, 1800, FL.tex.road(th), 13, 12, 0, 40, 0.1); cross.rotation.z = Math.PI / 2; st.add(cross);
+      const th = this.cfg.theme, st = this.stage, tier = this.tier, sc = this.sc;
+      // Der Einsatzort liegt jedes Mal woanders: Richtung, Entfernung, Landschaft und Anordnung werden ausgewürfelt.
+      const fixed = !!this.cfg.fixed, R0 = fixed ? 0.5 : Math.random();
+      const rnd = FL.seeded(71 + Math.round(tier * 10) + th.length * 3 + (sc.seed || 0) + (fixed ? 0 : Math.floor(Math.random() * 5000)));
+      const sa = fixed ? 0.27 : (Math.random() * 2 - 1) * 2.1, sd = fixed ? 955 : 1500 + Math.random() * 1100;
+      const OX = Math.round(BASE_C.x + Math.sin(sa) * sd), OZ = Math.round(BASE_C.z + Math.cos(sa) * sd) - 30;
+      const biome = this.cfg.biome || Object.keys(BIOMES)[Math.floor(R0 * 4) % 4];
+      this.site = { x: OX, z: OZ + 30, a: sa, d: sd, biome };
+      this.mid = { x: (BASE_C.x + OX) / 2, z: (BASE_C.z + OZ) / 2 }; this.midR = sd / 2 + 1150;
+      if (this.timeLeft > 0) this.timeLeft += Math.round(sd / 55);
+      const gnd = st.ground(16000, FL.tex.fields(th), 420); gnd.position.x = this.mid.x; gnd.position.z = this.mid.z;
+      st.add(st.strip(13, 2400, FL.tex.road(th), 13, 12, OX, OZ, 0.08));
+      const cross = st.strip(13, 1800, FL.tex.road(th), 13, 12, OX, OZ + 40, 0.1); cross.rotation.z = Math.PI / 2; st.add(cross);
       const placed = [];
       const airfield = th === 'industrie';
       if (airfield) {
-        const rw = st.strip(34, 520, FL.tex.concrete('#6f7376'), 17, 20, 120, 20, 0.12); st.add(rw);
-        for (let i = -5; i <= 5; i++) st.add(FL.box(1.2, 0.05, 22, FL.basic(0xe8e8e8), 120, 0.16, 20 + i * 44));
+        const rw = st.strip(34, 520, FL.tex.concrete('#6f7376'), 17, 20, OX + 120, OZ + 20, 0.12); st.add(rw);
+        for (let i = -5; i <= 5; i++) st.add(FL.box(1.2, 0.05, 22, FL.basic(0xe8e8e8), OX + 120, 0.16, OZ + 20 + i * 44));
         for (let i = 0; i < 13; i++) placed.push({ x: 120, z: -220 + i * 40, r: 20 });
       }
       for (let i = -3; i <= 3; i++) placed.push({ x: 0, z: i * 60, r: 8 }, { x: i * 60, z: 40, r: 8 });
 
+      const R = 190 + 22 * tier;
+      this.buildBiome(biome, OX, OZ, R, rnd);
       const prim = ['depot', 'depot', 'bunker', 'depot'];
       if (tier >= 2) prim.push('hangar', 'radar');
       if (tier >= 3) prim.push('hq', 'hangar');
@@ -158,13 +178,13 @@
       if (sc.prim) { prim.length = 0; prim.push(...sc.prim); }
       const flakPrim = sc.flakPrim !== undefined ? sc.flakPrim : th === 'daemmerung';
       const nFlak = 2 + Math.round(tier * 1.1) + (sc.flak || 0) + Math.round(2 * this.pw);
-      const R = 190 + 22 * tier;
       const add = (kind, primary, rMin, rMax, opt) => {
         // aus der Luft wären die Gebäude sonst sehr klein, deshalb etwas größer
         const mesh = FL.building(kind, th, opt), u = mesh.userData, SC = 1.7;
         u.r *= SC; u.h *= SC; mesh.scale.setScalar(SC);
         const p = FL.scatter(rnd, placed, u.r, 0, 30, rMin, rMax, 10);
         if (!p) return null;
+        p[0] += OX; p[1] += OZ;
         mesh.position.set(p[0], 0, p[1]);
         mesh.rotation.y = Math.floor(rnd() * 4) * Math.PI / 2;
         st.add(mesh);
@@ -187,22 +207,66 @@
       this.flak = this.structures.filter(s => s.kind === 'flak');
       this.nPrimary = this.goal === 'jets' ? sc.jets.need : this.structures.filter(s => s.primary).length;
 
-      // Bäume rundherum (ohne Schatten, damit es flüssig läuft)
-      for (let i = 0; i < 520; i++) {
-        const a = rnd() * 6.283, d = R + 60 + Math.pow(rnd(), 0.7) * 1100;
-        const x = Math.sin(a) * d, z = 30 + Math.cos(a) * d;
-        if (Math.abs(x) < 12 || Math.abs(z - 40) < 12) continue;
-        if (airfield && Math.abs(x - 120) < 30 && Math.abs(z - 20) < 300) continue;
-        if (x > -420 && x < -200 && z > RZ0 - 90 && z < RZ1 + 60) continue;          // eigene Flugbasis
-        if (Math.abs(x - BX) < 45 && z > RZ0 - 420 && z < RZ1 + 420) continue;       // Anflug frei halten
-        const t = FL.tree(FL.pick(st.theme.trees), rnd);
+      // Bäume rund um den Einsatzort und rund um die eigene Basis (ohne Schatten, damit es flüssig läuft)
+      const okTree = (x, z) => !(x > -420 && x < -200 && z > RZ0 - 90 && z < RZ1 + 60) && !(Math.abs(x - BX) < 45 && z > RZ0 - 420 && z < RZ1 + 420);
+      const kinds = biome === 'wueste' ? FL.THEMES.wueste.trees : st.theme.trees;
+      for (let i = 0; i < 720; i++) {
+        const atBase = i >= 520, a = rnd() * 6.283, d = atBase ? 60 + Math.pow(rnd(), 0.7) * 900 : R + 60 + Math.pow(rnd(), 0.7) * 1100;
+        const lx = Math.sin(a) * d, lz = 30 + Math.cos(a) * d;
+        if (!atBase && (Math.abs(lx) < 12 || Math.abs(lz - 40) < 12)) continue;
+        if (!atBase && airfield && Math.abs(lx - 120) < 30 && Math.abs(lz - 20) < 300) continue;
+        const x = atBase ? BASE_C.x + lx : OX + lx, z = atBase ? BASE_C.z + lz : OZ + lz;
+        if (!okTree(x, z)) continue;
+        if (this.sea && this.sea(x, z)) continue;
+        const t = FL.tree(FL.pick(atBase ? st.theme.trees : kinds), rnd, true);
         t.position.set(x, 0, z); t.scale.setScalar(1.5);
         st.add(FL.noShadow(t));
       }
       // ein paar Bäume zwischen den Gebäuden
       for (let i = 0; i < 40; i++) {
-        const t = FL.tree(FL.pick(st.theme.trees), rnd), p = FL.scatter(rnd, placed, 3, 0, 30, 20, R + 50, 4);
-        if (p) { t.position.set(p[0], 0, p[1]); t.scale.setScalar(1.4); st.add(t); }
+        const t = FL.tree(FL.pick(kinds), rnd, true), p = FL.scatter(rnd, placed, 3, 0, 30, 20, R + 50, 4);
+        if (p) { t.position.set(p[0] + OX, 0, p[1] + OZ); t.scale.setScalar(1.4); st.add(t); }
+      }
+    }
+
+    // Landschaft am Einsatzort: Berge, dichter Wald, Küste oder Wüste
+    buildBiome(biome, OX, OZ, R, rnd) {
+      const st = this.stage, cx = OX, cz = OZ + 30;
+      const patch = (name, rad, y) => {
+        const t = FL.tex.ground(name).clone(); t.needsUpdate = true; t.repeat.set(rad * 2 / 18, rad * 2 / 18);
+        const g = new THREE.CircleGeometry(rad, 48), m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: t, shininess: 2, specular: 0x050505, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
+        m.rotation.x = -Math.PI / 2; m.position.set(cx, y, cz); m.receiveShadow = true;
+        st.owned.push(g, t, m.material); st.add(m);
+      };
+      if (biome === 'wueste') patch('wueste', R + 520, 0.04);
+      else if (biome === 'berge') {
+        patch('winter', R + 260, 0.04);
+        const rock = FL.mat(0x77797c, { flat: true }), snow = FL.mat(0xf2f5f8, { flat: true });
+        for (let i = 0; i < 16; i++) {
+          const a = i / 16 * 6.283 + rnd() * 0.3, d = R + 330 + rnd() * 620, rad = 150 + rnd() * 190, h = 190 + rnd() * 300;
+          const g = new THREE.Group();
+          const c1 = new THREE.Mesh(FL.geo('berg', () => new THREE.ConeGeometry(1, 1, 7)), rock); c1.scale.set(rad, h, rad); c1.position.y = h / 2;
+          const c2 = new THREE.Mesh(FL.geo('berg', () => new THREE.ConeGeometry(1, 1, 7)), snow); c2.scale.set(rad * 0.36, h * 0.36, rad * 0.36); c2.position.y = h * 0.825;
+          g.add(c1, c2); g.rotation.y = rnd() * 6;
+          g.position.set(cx + Math.sin(a) * d, -4, cz + Math.cos(a) * d);
+          const x = g.position.x, z = g.position.z;
+          if (Math.abs(x - BX) < rad + 120 && z > RZ0 - 900 && z < RZ1 + 900) continue;      // nicht in den Landeanflug
+          st.add(g);
+        }
+      } else if (biome === 'meer') {
+        // Küste: Strand unter dem Einsatzort, dahinter das Meer (auf der Seite, die von der eigenen Basis weg zeigt)
+        patch('wueste', R + 300, 0.04);
+        const ux = Math.sin(this.site.a), uz = Math.cos(this.site.a), edge = R + 110;
+        const g = new THREE.PlaneGeometry(9000, 9000), m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: 0x2c6f9c, shininess: 70, specular: 0x8fb8d0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }));
+        m.rotation.x = -Math.PI / 2; m.position.set(0, 0.07, edge + 4500); m.receiveShadow = true;
+        const sg = new THREE.Group(); sg.add(m); sg.rotation.y = this.site.a; sg.position.set(cx, 0, cz);
+        st.owned.push(g, m.material); st.add(sg);
+        this.sea = (x, z) => (x - cx) * ux + (z - cz) * uz > edge - 6;
+      } else patch('wald', R + 420, 0.04);
+      if (biome === 'wald') for (let i = 0; i < 380; i++) {
+        const a = rnd() * 6.283, d = R + 30 + Math.sqrt(rnd()) * 480, x = cx + Math.sin(a) * d, z = cz + Math.cos(a) * d;
+        const t = FL.tree(FL.pick(['pine', 'pine', 'leaf', 'leaf', 'bush']), rnd, true); t.position.set(x, 0, z); t.scale.setScalar(1.5 + rnd() * 0.5);
+        st.add(FL.noShadow(t));
       }
     }
 
@@ -326,38 +390,93 @@
       this.shake = Math.max(0, this.shake - dt);
       if (this.phase !== 'flight') { this.updateBase(dt); return; }
 
-      // lenken
+      // ---- lenken: frei in alle Richtungen (Schräglage, Rolle, Looping, Rückenflug, Sturzflug)
       let turn = FL.clamp((FL.down('ArrowLeft', 'KeyA') ? 1 : 0) - (FL.down('ArrowRight', 'KeyD') ? 1 : 0) - FL.stick.x, -1, 1);
       // Steuerknüppel: nach hinten ziehen (Pfeil runter) hebt die Nase, nach vorn drücken (Pfeil hoch) senkt sie
       let climb = FL.clamp((FL.down('ArrowDown', 'KeyS') ? 1 : 0) - (FL.down('ArrowUp', 'KeyW') ? 1 : 0) - FL.stick.y, -1, 1);
-      if (FL.tilt.on) { turn = FL.clamp(turn + FL.tilt.turn, -1, 1); climb = FL.clamp(climb + FL.tilt.climb, -1, 1); }
-      const far = Math.hypot(this.x - MID.x, this.z - MID.z);
-      if (far > MIDR) {
-        // zu weit weg: Das Flugzeug dreht von selbst zum Zielgebiet zurück
-        const rel = FL.bearing(this.x, this.z, this.th, MID.x, MID.z);
-        if (Math.abs(rel) > 0.25) turn = rel > 0 ? 1 : -1;
-        this.warnT -= dt;
-        if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Zurück zum Zielgebiet!', C.text, true); }
+      const rollKey = (FL.down('KeyQ') ? 1 : 0) - (FL.down('KeyE') ? 1 : 0);
+      let hard = rollKey !== 0;                                          // Q und E (iPad: Knöpfe „Rolle“): Rolle um die Längsachse
+      if (hard) turn = rollKey;
+      if (FL.tilt.on) {
+        turn = FL.clamp(turn + FL.tilt.turn * 0.9, -1, 1); climb = FL.clamp(climb + FL.tilt.climb, -1, 1);
+        if (Math.abs(FL.tilt.rollDeg || 0) > 42) { turn = Math.sign(FL.tilt.rollDeg); hard = true; }
       }
-      if (this.lost) { turn = 0; climb = -1.2; }
-      // kurz nach dem Abheben steigt das Flugzeug von selbst auf sichere Höhe
-      if (this.floor < 16) { this.floor = Math.min(16, this.floor + 8 * dt); climb = Math.max(climb, 0.75); }
-      this.th = wrap(this.th + turn * this.turnRate * dt);
+      const q = this.q, F = this.F, U = this.U, L = this.L;
+      const axes = () => { F.copy(Z_AXIS).applyQuaternion(q); U.copy(Y_AXIS).applyQuaternion(q); L.copy(X_AXIS).applyQuaternion(q); };
+      axes();
+      const theta = Math.asin(FL.clamp(F.y, -1, 1)), phi = Math.atan2(-L.y, U.y);      // Nase über dem Horizont, Schräglage (links positiv)
+      const far = Math.hypot(this.x - this.mid.x, this.z - this.mid.z);
+      if (far > this.midR) {
+        // zu weit weg: Das Flugzeug dreht von selbst zum Einsatzgebiet zurück
+        const rel = FL.bearing(this.x, this.z, this.th, this.mid.x, this.mid.z);
+        if (Math.abs(rel) > 0.25) { turn = rel > 0 ? 0.85 : -0.85; hard = false; }
+        this.warnT -= dt;
+        if (this.warnT <= 0) { this.warnT = 4; FL.hud.msg('Zurück zum Einsatzgebiet!', C.text, true); }
+      }
       // Landen darf man nur im Anflug auf die eigene Bahn, sonst bleibt eine sichere Mindesthöhe
       const canLand = this.rtb && !this.lost && this.goAround <= 0 && Math.abs(this.x - BX) < 70 && this.z > RZ0 - 750 && this.z < RZ1 + 750;
-      if (this.goAround > 0) { this.goAround -= dt; climb = Math.max(climb, 0.9); }
-      const fl = this.lost ? 4 : canLand ? GY : this.floor, y0 = this.y;
-      this.y = Math.min(CEIL, this.y + climb * 30 * dt);
-      if (this.y < fl) this.y = Math.min(fl, Math.max(this.y, y0) + 24 * dt);
+      const fl = this.lost ? 4 : canLand ? GY : this.floor;
+      const vy = F.y * this.speed;
+      // Automatik: nach dem Abheben steigen, Sturzflug rechtzeitig abfangen (kein Absturz), oben nicht durch die Decke
+      let auto = null;
+      if (this.lost) auto = -0.22;
+      else if (this.goAround > 0) { this.goAround -= dt; auto = 0.3; }
+      else if (this.floor < 16) { this.floor = Math.min(16, this.floor + 8 * dt); if (theta < 0.2) auto = 0.3; }
+      else if (this.recov || (vy < 0 && !(canLand && vy > -26) && this.y - fl < -vy * 1.0 + 4)) {
+        auto = 0.25;
+        if (!this.recov) { this.recov = true; FL.audio.play('alarm'); FL.hud.msg('Abfangen!', C.orange, true); }
+        if (F.y > 0.08) { this.recov = false; auto = null; }
+      }
+      else if (this.y > CEIL - 8 && F.y > 0) auto = 0;
+      if (auto !== null) {
+        T1.set(F.x, 0, F.z);
+        if (T1.lengthSq() < 1e-4) T1.set(Math.sin(this.th), 0, Math.cos(this.th));
+        T1.normalize().multiplyScalar(Math.sqrt(1 - auto * auto)); T1.y = auto;
+        q.rotateTowards(levelQuat(T1), (this.lost ? 1.2 : 2.6) * dt);
+      } else {
+        // rollen: wenig Ausschlag = Schräglage halten, voller Ausschlag = durchrollen, auf dem Rücken bleibt es auf dem Rücken
+        let rate;
+        if (hard) rate = Math.sign(turn) * 2.9;
+        else if (Math.abs(phi) > 2.0) rate = Math.abs(turn) > 0.3 ? Math.sign(turn) * 2.5 : FL.clamp(wrap(Math.sign(phi) * Math.PI - phi) * 3, -2, 2);
+        else if (Math.abs(phi) > 1.3 && Math.abs(turn) <= 0.3) rate = Math.sign(phi) * (Math.abs(phi) > 1.62 ? 1.5 : -1.5);
+        else rate = FL.clamp((turn * 1.1 - phi) * 4, -2.9, 2.9);
+        q.multiply(QA.setFromAxisAngle(Z_AXIS, -rate * dt));
+        // Nase: ziehen und drücken wirken immer aus Sicht des Flugzeugs, deshalb gehen Loopings
+        let pr = climb * this.pitchRate;
+        if (Math.abs(climb) < 0.08 && Math.abs(phi) < 1.2 && Math.abs(theta) < 0.5) pr = FL.clamp(-theta * 1.2, -0.35, 0.35);    // losgelassen: sanft geradeaus
+        q.multiply(QA.setFromAxisAngle(X_AXIS, -pr * dt));
+        // Kurve durch die Schräglage
+        axes();
+        const yaw = this.turnRate * FL.clamp(-L.y * 1.35, -1, 1);
+        q.premultiply(QA.setFromAxisAngle(Y_AXIS, yaw * dt));
+      }
+      q.normalize(); axes();
+      // Schub: Schubhebel (Neigesteuerung) oder Umschalt-Taste für den Nachbrenner. Steigen kostet Tempo, im Sturzflug wird man schneller.
+      const thr = this.thr = this.lost ? 0.3 : this.throttle();
+      this.ab = thr > 0.9 && !this.lost;
+      let wantV = this.ab ? 98 : FL.lerp(40, 72, thr / 0.9);
+      if (this.gearDown) wantV = Math.min(wantV, 52);              // ausgefahrenes Fahrwerk bremst
+      wantV = Math.max(32, wantV - F.y * 22);
+      this.speed = FL.lerp(this.speed, wantV, 1 - Math.exp(-0.9 * dt));
+      if (this.gearDown && !this.lost && !this.rtb && this.y > GY + 14) {
+        this.gearT -= dt;
+        if (this.gearT <= 0) { this.gearT = 6; FL.hud.msg(FL.touch.active ? 'Fahrwerk einfahren (Knopf „Fahrwerk“)' : 'Fahrwerk einfahren: Taste G', C.cyan, true); }
+      }
+      this.x += F.x * this.speed * dt; this.y += F.y * this.speed * dt; this.z += F.z * this.speed * dt;
+      if (this.y > CEIL) this.y = CEIL;
+      if (this.y < fl) {
+        this.y = fl;
+        if (F.y < 0) { T1.set(F.x, 0, F.z).normalize(); q.rotateTowards(levelQuat(T1), 6 * dt); axes(); }
+      }
+      if (Math.abs(F.y) < 0.985) this.th = Math.atan2(F.x, F.z);
       if (canLand && this.y <= GY + 0.02 && this.endT < 0) {
         const dir = Math.cos(this.th) > 0 ? 1 : -1, remain = dir > 0 ? RZ1 - this.z : this.z - RZ0;
         const onRw = Math.abs(this.x - BX) < 15 && this.z > RZ0 && this.z < RZ1;
-        const straight = Math.abs(wrap(this.th - (dir > 0 ? 0 : Math.PI))) < 0.32;
+        const straight = Math.abs(wrap(this.th - (dir > 0 ? 0 : Math.PI))) < 0.32 && Math.abs(phi) < 0.5;
         if (onRw && straight && remain > 150) {
           // sauber aufgesetzt: ausrollen
-          const sink = -climb * 30;
-          if (sink > 17 && this.gearDown) { this.hp = Math.max(1, this.hp - 2); FL.hud.damage(0.5); FL.hud.msg('Harte Landung!', C.orange, true); }
-          this.y = GY; this.landDir = dir; this.touched = false; this.v = this.speed; this.gearT = 0;
+          if (-vy > 17 && this.gearDown) { this.hp = Math.max(1, this.hp - 2); FL.hud.damage(0.5); FL.hud.msg('Harte Landung!', C.orange, true); }
+          this.y = GY; this.landDir = dir; this.touched = false; this.v = this.speed; this.gearT = 0; this.roll = 0; this.pitch = 0;
           this.setPhase('landing');
           for (const m of this.apMarks) m.visible = false;
           this.updateBase(0.0001); return;
@@ -365,21 +484,7 @@
         this.goAround = 1.6; FL.audio.play('alarm');
         FL.hud.msg('Durchstarten!', C.red); FL.hud.msg(!onRw ? 'Du warst nicht über der Landebahn' : !straight ? 'Du warst schräg zur Landebahn' : 'Die Bahn reicht nicht mehr zum Ausrollen', C.text, true);
       }
-      // Schub: Schubhebel (Neigesteuerung) oder Umschalt-Taste für den Nachbrenner
-      const thr = this.thr = this.lost ? 0.3 : this.throttle();
-      this.ab = thr > 0.9 && !this.lost;
-      let wantV = this.ab ? 98 : FL.lerp(40, 72, thr / 0.9);
-      if (this.gearDown) wantV = Math.min(wantV, 52);              // ausgefahrenes Fahrwerk bremst
-      this.speed = FL.lerp(this.speed, wantV, 1 - Math.exp(-0.9 * dt));
-      if (this.gearDown && !this.lost && !this.rtb && this.y > GY + 14) {
-        this.gearT -= dt;
-        if (this.gearT <= 0) { this.gearT = 6; FL.hud.msg(FL.touch.active ? 'Fahrwerk einfahren (Knopf „Fahrwerk“)' : 'Fahrwerk einfahren: Taste G', C.cyan, true); }
-      }
-      const k = 1 - Math.exp(-5 * dt);
-      this.roll = FL.lerp(this.roll, -turn * 0.8, k);
-      this.pitch = FL.lerp(this.pitch, -climb * 0.22, k);
       const sin = Math.sin(this.th), cos = Math.cos(this.th);
-      this.x += sin * this.speed * dt; this.z += cos * this.speed * dt;
       this.place();
       if (!this.lost && this.endT < 0 && !this.rtb) {
         this.fuel -= dt * (this.ab ? 2.2 : 1);
@@ -392,13 +497,14 @@
       }
 
       // Zielpunkte am Boden: Bombe (Kreis) und Bordkanone (Punkt)
-      const fall = Math.sqrt(2 * this.y / GRAV);
-      const bx = this.x + sin * this.speed * fall, bz = this.z + cos * this.speed * fall;
+      const bvy = F.y * this.speed, fall = (bvy + Math.sqrt(bvy * bvy + 2 * GRAV * this.y)) / GRAV;
+      const bx = this.x + F.x * this.speed * fall, bz = this.z + F.z * this.speed * fall;
       const bombR = 13 + 4 * lo.p_bomb;
       this.ring.visible = true; this.goalRing.visible = false;
       this.ring.position.set(bx, 0.4, bz); this.ring.scale.set(bombR * 2, bombR * 2, 1);
       this.ring.material.opacity = this.bombCd <= 0 ? 1 : 0.35;
-      const gd = 70 + this.y * 2.4, gx = this.x + sin * gd, gz = this.z + cos * gd;
+      // wohin die Nase am Boden zeigt (nur wenn sie nach unten zeigt)
+      const down = F.y < -0.04, gd = down ? Math.min(900, this.y / -F.y) : 400, gx = this.x + F.x * gd, gz = this.z + F.z * gd;
       // Zielhilfe: Liegt ein Ziel ungefähr voraus, rastet die Bordkanone darauf ein (grüner Punkt)
       const cone = FL.tilt.on ? 0.34 : 0.22;
       const tj = this.jets.filter(j => !j.dead && Math.abs(FL.bearing(this.x, this.z, this.th, j.x, j.z)) < cone + 0.1 && Math.hypot(j.x - this.x, j.z - this.z) < 440)[0];
@@ -406,14 +512,14 @@
       if (!tj) for (const s of this.structures) {
         if (!s.alive) continue;
         const d = Math.hypot(s.x - this.x, s.z - this.z);
-        if (d > 200 + this.y * 2.6 || d < 35) continue;
+        if (d > 200 + this.y * 2.6 || d < 35 || theta > 0.45) continue;
         const rel = Math.abs(FL.bearing(this.x, this.z, this.th, s.x, s.z));
         if (rel > cone) continue;
         const sc = rel * 700 + d * 0.3 - (s.primary ? 150 : s.kind === 'flak' ? 90 : 0) - (s === this.lock ? 60 : 0);
         if (sc < best) { best = sc; lock = s; }
       }
       this.lock = lock;
-      this.dot.position.set(gx, 0.5, gz); this.dot.scale.set(9, 9, 1); this.dot.visible = !lock && !tj;
+      this.dot.position.set(gx, 0.5, gz); this.dot.scale.set(9, 9, 1); this.dot.visible = !lock && !tj && down;
       const lt = tj || lock;
       this.lockMark.visible = !!lt;
       if (lt) {
@@ -423,9 +529,9 @@
 
       const active = !this.lost && this.endT < 0;
       // Bordkanone: zielt von selbst auf einen Jäger, der vor einem fliegt
-      if (active && FL.down('Space') && this.gunCd <= 0) {
+      if (active && FL.down('Space', 'Mouse0') && this.gunCd <= 0) {
         this.gunCd = 0.13 - 0.02 * lo.p_gun;
-        let tx = gx, ty = 0, tz = gz;
+        let tx = this.x + F.x * 420, ty = this.y + F.y * 420, tz = this.z + F.z * 420;
         if (tj) { const tt = Math.hypot(tj.x - this.x, tj.z - this.z) / 420; tx = tj.x + tj.vx * tt; ty = tj.y; tz = tj.z + tj.vz * tt; }
         else if (lock) { tx = lock.x; ty = lock.h * 0.4; tz = lock.z; }
         for (const side of [-1, 1]) {
@@ -439,7 +545,7 @@
       if (active && FL.down('KeyB', 'KeyX', 'Enter') && this.bombCd <= 0) {
         this.bombCd = 1.5 - 0.3 * lo.p_bomb;
         const mesh = FL.bombModel(); mesh.scale.setScalar(3.2); this.stage.add(mesh);
-        const bomb = { x: this.x, y: this.y - 1, z: this.z, vx: sin * this.speed, vy: 0, vz: cos * this.speed, mesh, r: bombR, dmg: 12 + 5 * lo.p_bomb };
+        const bomb = { x: this.x, y: this.y - 1, z: this.z, vx: F.x * this.speed, vy: Math.min(0, F.y * this.speed), vz: F.z * this.speed, mesh, r: bombR, dmg: 12 + 5 * lo.p_bomb };
         this.bombs.push(bomb);
         this.bview = { b: bomb, hold: -1 };
         this.camBox.style.display = ''; this.camBox.className = 'bombcam'; this.camBox.lastChild.textContent = '';
@@ -570,7 +676,7 @@
           if (this.alarmT <= 0 && this.alarmN < 6) { this.alarmT = 0.9; this.alarmN++; FL.audio.play('alarm'); FL.hud.damage(0.35); }
           if (dist(h, PARK) < 6.5) {
             h.mesh.visible = false; FL.audio.play('up');
-            this.setPhase('taxi'); FL.hud.msg('Eingestiegen!', C.green); FL.hud.msg('Roll zur Startbahn', C.gold, true);
+            this.setPhase('taxi'); FL.hud.msg('Eingestiegen!', C.green); FL.hud.msg('Roll zur Startbahn', C.gold, true); FL.hud.msg(this.siteText(), C.cyan, true);
           }
         } else if (!done && dist(h, DOOR) < 3.2) {
           h.mesh.visible = false; this.endT = 1.8; FL.audio.play('coin');
@@ -613,7 +719,7 @@
         this.pitch = FL.lerp(this.pitch, this.v >= 45 ? -0.12 : 0, 1 - Math.exp(-4 * dt));
         if (this.v >= 45 && (pull || this.v >= 61.5 || this.z > RZ1 - 90)) {
           this.floor = GY; this.speed = this.v; this.gearT = 5; this.setPhase('flight');
-          FL.hud.msg('Abgehoben!', C.green); FL.hud.msg('Zerstöre alle markierten Ziele!', C.gold, true);
+          FL.hud.msg('Abgehoben!', C.green); FL.hud.msg(this.siteText(), C.gold, true);
         }
       } else if (ph === 'landing') {
         const d = this.landDir, s = d > 0 ? this.z - RZ0 : RZ1 - this.z;
@@ -658,7 +764,7 @@
       this.ring.visible = false; this.dot.visible = false; this.lockMark.visible = false;
       this.goalRing.visible = !!goal;
       if (goal) { const sc = (goal === DOOR ? 5 : 11) * (1 + Math.sin(this.t * 5) * 0.1); this.goalRing.position.set(goal.x, 0.3, goal.z); this.goalRing.scale.set(sc, sc, 1); }
-      this.goal = goal;
+      this.walkGoal = goal;
       for (const s of this.spinners) s.rotation.y += dt * 1.5;
       for (const b of this.burning) { b.t -= dt; if (Math.random() < dt * 4) fx.puff('smoke', b.x, 3, b.z, b.size * 2.2, FL.rand(2.5, 4), 1.5, FL.rand(5, 9), 0, 2); }
       this.updateBombCam(dt);
@@ -666,6 +772,7 @@
       fx.update(dt);
       if (camMode === 'walk') {
         const cam = this.stage.camera, c = this.walkCam, sin = Math.sin(c), cos = Math.cos(c);
+        cam.up.set(0, 1, 0);
         cam.position.set(h.x - sin * 12, 6.5, h.z - cos * 12);
         cam.lookAt(h.x + sin * 8, 1.6, h.z + cos * 8);
         this.stage.update(new THREE.Vector3(h.x + sin * 12, 0, h.z + cos * 12));
@@ -675,11 +782,16 @@
 
     place() {
       this.jet.position.set(this.x, this.y, this.z);
-      this.jet.rotation.set(this.pitch, this.th, this.roll);
+      if (this.phase === 'flight') this.jet.quaternion.copy(this.q); else this.jet.rotation.set(this.pitch, this.th, this.roll);
       this.jet.visible = !(this.invuln > 0 && Math.floor(this.t * 14) % 2);
       this.jet.userData.gear.visible = this.gearDown;
       const fl = this.jet.userData.flame;
       if (fl) { const k = this.ab ? 2.6 + Math.random() * 0.6 : 1; fl.scale.setScalar((fl.userData.s0 || (fl.userData.s0 = fl.scale.x)) * k); }
+    }
+    siteText() {
+      const s = this.site, dirs = ['Norden', 'Nordwesten', 'Westen', 'Südwesten', 'Süden', 'Südosten', 'Osten', 'Nordosten'];
+      const k = ((Math.round(s.a / (Math.PI / 4)) % 8) + 8) % 8;
+      return `Einsatzort ${BIOMES[s.biome]}: ${(s.d / 100).toFixed(0) / 10} km im ${dirs[k]}`;
     }
     throttle() { return FL.throttle.on ? FL.throttle.v : FL.down('ShiftLeft', 'ShiftRight') ? 1 : 0.62; }
     toggleGear() {
@@ -773,9 +885,24 @@
     }
 
     updateCamera(dt) {
-      const cam = this.stage.camera;
+      const cam = this.stage.camera, sh = this.shake * 2;
+      if (this.phase === 'flight') {
+        // Die Kamera folgt dem Flugzeug in jede Lage. Normal bleibt der Horizont fast gerade, im Looping und auf dem Rücken dreht sie mit.
+        const F = this.F, U = this.U, cf = this.camF, cu = this.camU;
+        cf.lerp(F, 1 - Math.exp(-4.5 * dt)).normalize();
+        const w = FL.clamp((U.y + 0.2) / 0.5, 0, 1) * 1.6;
+        T1.copy(U).addScaledVector(Y_AXIS, w).normalize();
+        cu.lerp(T1, 1 - Math.exp(-3.5 * dt)).normalize();
+        cam.position.set(this.x - cf.x * 26 + cu.x * 8 + FL.rand(-sh, sh), Math.max(1.5, this.y - cf.y * 26 + cu.y * 8 + FL.rand(-sh, sh)), this.z - cf.z * 26 + cu.z * 8);
+        cam.up.copy(cu);
+        cam.lookAt(this.x + cf.x * 45 - cu.x * 3, this.y + cf.y * 45 - cu.y * 3, this.z + cf.z * 45 - cu.z * 3);
+        this.camTh = this.th;
+        this.stage.update(new THREE.Vector3(this.x + Math.sin(this.th) * 90, 0, this.z + Math.cos(this.th) * 90));
+        return;
+      }
+      cam.up.set(0, 1, 0);
       this.camTh += wrap(this.th - this.camTh) * (1 - Math.exp(-3.5 * dt));
-      const sin = Math.sin(this.camTh), cos = Math.cos(this.camTh), sh = this.shake * 2;
+      const sin = Math.sin(this.camTh), cos = Math.cos(this.camTh);
       const hgt = FL.clamp((this.y - GY) / 22, 0, 1), back = FL.lerp(20, 27, hgt);
       cam.position.set(this.x - sin * back + FL.rand(-sh, sh), this.y + FL.lerp(5.5, 9, hgt) + FL.rand(-sh, sh), this.z - cos * back);
       cam.lookAt(this.x + sin * 45, this.y - FL.lerp(1, 9, hgt), this.z + cos * 45);
@@ -815,7 +942,7 @@
             `<div>${this.gearDown ? 'Fahrwerk ist aus' : '<b style="color:#ef5a4c">Fahrwerk ausfahren!</b>'}</div>`;
         }
       }
-      else if (next) tc += to('Nächstes Ziel', next);
+      else if (next) tc += dist(this, this.site) > 650 ? to('Einsatzort ' + BIOMES[this.site.biome], this.site) : to('Nächstes Ziel', next);
       H.set(this.hTC, tc);
       let tr = `<div class="slot ${this.bombCd <= 0 ? 'ready' : ''}"><b>B</b>Bombe ${this.bombCd <= 0 ? 'bereit' : 'lädt'}</div>`;
       if (lo.p_rocket) tr += `<br><div class="slot ${this.rocketCd <= 0 ? 'ready' : ''}"><b>R</b>Raketen${this.rocketCd <= 0 ? ' bereit' : `<i style="width:${Math.round((1 - this.rocketCd / this.rocketMax) * 100)}%"></i>`}</div>`;
@@ -825,6 +952,7 @@
       for (const j of this.jets) items.push({ x: j.x, z: j.z, color: '#ff40c0', size: 4, far: true });
       items.push({ x: BX, z: (RZ0 + RZ1) / 2, color: '#5fd07a', size: 5, far: true });
       if (this.rtb) for (const a of [AP_N, AP_S]) items.push({ x: a.x, z: a.z, color: '#46dcff', size: 4, far: true });
+      else items.push({ x: this.site.x, z: this.site.z, color: '#ffe14a', size: 8, far: true, ring: true });
       const air = ph === 'flight' || ph === 'landing';
       this.hInfo.style.display = ph === 'flight' && !this.rtb ? '' : 'none';
       FL.drawMinimap(this.map, me.x, me.z, myTh, air ? 520 : 120, items);

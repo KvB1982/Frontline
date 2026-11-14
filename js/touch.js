@@ -1,7 +1,7 @@
 'use strict';
 // Frontlinie 3 – Steuerung per Finger (iPad, Tablet, Handy). Die Knöpfe drücken einfach die passenden Tasten.
 (() => {
-  const T = FL.touch = { active: false, layer: null, held: new Map(), swipe: 0, turret: 0 };
+  const T = FL.touch = { active: false, layer: null, held: new Map(), swipe: 0, turret: 0, elev: 0 };
   // runder Steuerknüppel: x nach rechts, y nach vorn (oben), jeweils -1 bis 1
   FL.stick = { x: 0, y: 0 };
   // Schubhebel (nur bei Neigesteuerung im Flugzeug): v von 0 bis 1, über 0.9 zündet der Nachbrenner
@@ -99,6 +99,7 @@
     const roll = lim(s[0]) - lim(n[0]);                                               // positiv: linke Seite tiefer = Linkskurve
     const pitch = wrapDeg((Math.atan2(s[1], s[2]) - Math.atan2(n[1], n[2])) * DEG);   // positiv: Oberkante zu sich gezogen
     G.turn = G.on ? curve(roll, ROLL_FULL) : 0;
+    G.rollDeg = G.on ? roll : 0;
     G.climb = G.on ? curve(pitch, PITCH_FULL) : 0;
     if (G.dot) G.dot.style.transform = `translate(${-G.turn * 15}px,${G.climb * 15}px)`;
   };
@@ -203,13 +204,21 @@
         L.insertBefore(area, L.firstChild);
         let sw = null;
         const pulse = code => { press(code); setTimeout(() => release(code), 220); if (navigator.vibrate) navigator.vibrate(10); };
-        area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, done: false }; });
+        // Tippen oder Halten irgendwo auf dem freien Bildschirm feuert die Bordkanone
+        const fireOn = () => { if (sw && !sw.fire && !sw.done) { sw.fire = true; press('Space'); } };
+        const fireOff = () => { if (sw && sw.fire) { sw.fire = false; release('Space'); } };
+        area.addEventListener('pointerdown', e => { if (sw) return; const me = sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, done: false, fire: false, moved: 0 }; setTimeout(() => { if (sw === me && me.moved < 20) fireOn(); }, 110); });
         area.addEventListener('pointermove', e => {
           if (!sw || e.pointerId !== sw.id || sw.done) return;
           const dy = e.clientY - sw.y0, dx = e.clientX - sw.x0;
-          if (Math.abs(dy) > 55 && Math.abs(dy) > Math.abs(dx) * 1.2) { sw.done = true; pulse(dy > 0 ? 'KeyB' : 'KeyR'); }
+          sw.moved = Math.max(sw.moved, Math.hypot(dx, dy));
+          if (Math.abs(dy) > 55 && Math.abs(dy) > Math.abs(dx) * 1.2) { fireOff(); sw.done = true; pulse(dy > 0 ? 'KeyB' : 'KeyR'); }
         });
-        const endW = e => { if (sw && e.pointerId === sw.id) sw = null; };
+        const endW = e => {
+          if (!sw || e.pointerId !== sw.id) return;
+          if (sw.fire) fireOff(); else if (!sw.done && sw.moved < 20) { press('Space'); setTimeout(() => release('Space'), 260); }      // kurzer Tipp: kurzer Feuerstoß
+          sw = null;
+        };
         area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
         // Schubhebel links
         const thr = FL.el('div', 'tthr', '<span class="nb">NB</span><i></i><b></b><em></em>', L);
@@ -251,23 +260,29 @@
         tog.addEventListener('click', () => { if (FL.tilt.on) FL.tilt.stop(true); else FL.tilt.start(true); });
         mid.addEventListener('pointerdown', e => { e.preventDefault(); FL.tilt.center(); mid.classList.add('flash'); setTimeout(() => mid.classList.remove('flash'), 350); });
         draw();
+        make(extra, 'Rolle ◀', 'KeyQ', 'small'); make(extra, 'Rolle ▶', 'KeyE', 'small');
         make(extra, 'Fahrwerk', 'KeyG', 'small cyan', TAP);
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
       } else {
-        // Wischen auf dem freien Bildschirm: links/rechts dreht den Turm, nach oben wischen stellt ihn geradeaus
+        // Freier Bildschirm: tippen = Schuss, links/rechts wischen dreht den Turm, hoch/runter wischen hebt oder senkt die Kanone
         const area = FL.el('div', 'tswipe', '');
         L.insertBefore(area, L.firstChild);
         let sw = null;
-        area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, mode: '' }; });
+        area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: '', t: e.timeStamp }; });
         area.addEventListener('pointermove', e => {
           if (!sw || e.pointerId !== sw.id) return;
           const dx = e.clientX - sw.x0, dy = e.clientY - sw.y0;
-          if (!sw.mode && Math.hypot(dx, dy) > 22) sw.mode = dy < 0 && -dy > Math.abs(dx) * 1.4 ? 'up' : 'turn';
+          if (!sw.mode && Math.hypot(dx, dy) > 22) sw.mode = Math.abs(dy) > Math.abs(dx) * 1.3 ? 'elev' : 'turn';
           if (sw.mode === 'turn') T.turret += e.clientX - sw.x;
-          else if (sw.mode === 'up' && dy < -50) { sw.mode = 'done'; press('KeyW'); setTimeout(() => release('KeyW'), 900); if (navigator.vibrate) navigator.vibrate(10); }
-          sw.x = e.clientX;
+          else if (sw.mode === 'elev') T.elev += e.clientY - sw.y;
+          sw.x = e.clientX; sw.y = e.clientY;
         });
-        const endW = e => { if (sw && e.pointerId === sw.id) sw = null; };
+        const endW = e => {
+          if (!sw || e.pointerId !== sw.id) return;
+          // kurzer Tipp ohne Wischen: ein Schuss
+          if (!sw.mode && e.type === 'pointerup' && e.timeStamp - sw.t < 450) { T.fire = true; if (navigator.vibrate) navigator.vibrate(12); }
+          sw = null;
+        };
         area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
         make(extra, 'Turm ◀', 'KeyA', 'small'); make(extra, 'Mitte', 'KeyW', 'small'); make(extra, 'Turm ▶', 'KeyD', 'small');
         FL.SPECIALS.forEach((sp, i) => { if (lo[sp.id]) make(extra, sp.key, 'Digit' + sp.key, 'small orange', TAP); });
@@ -277,7 +292,7 @@
   T.hide = () => {
     T.pending = null;
     if (T.endSwipe) { T.endSwipe(); T.endSwipe = null; }
-    T.swipe = 0; T.turret = 0;
+    T.swipe = 0; T.turret = 0; T.elev = 0; T.fire = false;
     FL.tilt.onChange = null; FL.tilt.dot = null;
     FL.stick.x = FL.stick.y = 0;
     FL.throttle.on = false; FL.throttle.v = 0;

@@ -23,7 +23,7 @@
       this.reload = 1.8 - 0.3 * lo.t_reload;
       this.maxV = 10 + 1.6 * lo.t_engine;
       this.turnRate = 1.05 + 0.15 * lo.t_engine;
-      this.cd = 0; this.shake = 0; this.dustT = 0; this.warnT = 0; this.recoil = 0;
+      this.range = 80; this.cd = 0; this.shake = 0; this.dustT = 0; this.warnT = 0; this.recoil = 0;
       this.supCd = [0, 0, 0, 0]; this.sup = []; this.barrage = null; this.aimX = 0; this.aimZ = 0;
       this.shells = []; this.eshells = []; this.structures = []; this.tanks = []; this.spinners = []; this.burning = []; this.crates = []; this.solid = [];
       this.buildWorld();
@@ -123,7 +123,7 @@
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = '↑ ↓ fahren · ← → lenken · A D Turm drehen · W Turm nach vorn · Leertaste Kanone · 1 2 3 4 Unterstützung · Schraubenschlüssel-Kisten reparieren · P Pause';
+      hint.innerHTML = '↑ ↓ fahren · ← → lenken · A D Turm drehen · W Turm nach vorn · R F Kanone höher/tiefer (Mausrad) · Leertaste oder Mausklick Schuss · 1 2 3 4 Unterstützung · Schraubenschlüssel-Kisten reparieren · P Pause';
     }
 
     // ---------------------------------------------------------------- Treffer
@@ -353,8 +353,14 @@
 
       // zielen und schießen
       const ath = wrap(this.th + this.tu);
-      const lock = active ? this.lockOn(ath) : null;
-      let ax = this.x + Math.sin(ath) * 70, az = this.z + Math.cos(ath) * 70, ay = 1.9;
+      // Kanone höher oder tiefer: Das Zielkreuz wandert weiter weg oder näher heran (R/F, Mausrad, hoch und runter wischen)
+      if (active) {
+        this.range = FL.clamp(this.range + ((FL.down('KeyR') ? 1 : 0) - (FL.down('KeyF') ? 1 : 0)) * 70 * dt - FL.touch.elev * 0.42 - FL.wheel * 0.06, 28, 175);
+      }
+      FL.touch.elev = 0; FL.wheel = 0;
+      let lock = active ? this.lockOn(ath) : null;
+      if (lock && Math.hypot(lock.x - this.x, lock.z - this.z) > this.range + 30) lock = null;      // Kanone steht zu tief: Das Ziel liegt zu weit weg
+      let ax = this.x + Math.sin(ath) * this.range, az = this.z + Math.cos(ath) * this.range, ay = 1.9;
       if (lock) { ax = lock.x; az = lock.z; ay = lock.h ? Math.min(lock.h * 0.5, 3) : 1.8; }
       this.aim.position.set(ax, ay, az);
       this.aimX = ax; this.aimZ = az;
@@ -363,12 +369,13 @@
       this.aim.scale.set(as, as, 1);
       this.aim.material.opacity = lock ? 1 : 0.55;
       this.aim.visible = active;
-      if (active && FL.down('Space') && this.cd <= 0) {
+      const tapFire = FL.touch.fire && this.cd <= 0.25; FL.touch.fire = false;
+      if (active && (FL.down('Space', 'Mouse0') || tapFire) && this.cd <= 0) {
         this.cd = this.reload; this.recoil = 1; this.shake = Math.max(this.shake, 0.18);
         const dir = Math.atan2(ax - this.x, az - this.z);
         const sx = this.x + Math.sin(ath) * 5, sz = this.z + Math.cos(ath) * 5;
         const mesh = fx.shot(0xffe0a0, 0.3, 3.5);
-        this.shells.push({ x: sx, z: sz, vx: Math.sin(dir) * 120, vz: Math.cos(dir) * 120, life: 1.6, mesh });
+        this.shells.push({ x: sx, z: sz, vx: Math.sin(dir) * 120, vz: Math.cos(dir) * 120, life: lock ? 1.6 : ad / 120, mesh });
         fx.spark(sx, 1.9, sz, 4); fx.puff('smoke', sx, 2, sz, 2.5, 0.8, 0, 1, 0, 1.5);
         FL.audio.play('cannon');
       }
@@ -380,7 +387,11 @@
           for (const e of this.tanks) if (!e.dead && Math.hypot(e.x - s.x, e.z - s.z) < e.r) { s.gone = true; this.hitTank(e, this.dmg); break; }
           if (!s.gone) for (const b of this.structures) if (b.alive && Math.hypot(b.x - s.x, b.z - s.z) < b.r * 0.85) { s.gone = true; this.hitStructure(b, this.dmg); break; }
         }
-        if (!s.gone && s.life <= 0) { s.gone = true; }
+        if (!s.gone && s.life <= 0) {
+          s.gone = true;
+          for (const e of this.tanks) if (!e.dead && Math.hypot(e.x - s.x, e.z - s.z) < e.r + 4) { this.hitTank(e, this.dmg); s.life = 0.01; break; }
+          if (s.life <= 0) for (const b of this.structures) if (b.alive && Math.hypot(b.x - s.x, b.z - s.z) < b.r + 3) { this.hitStructure(b, this.dmg); s.life = 0.01; break; }
+        }
         if (s.gone) { fx.freeShot(s.mesh); fx.explosion(s.x, 1.2, s.z, 0.7, s.life > 0); if (s.life <= 0) FL.audio.play('pop'); }
         else { s.mesh.position.set(s.x, 1.9, s.z); s.mesh.rotation.y = Math.atan2(s.vx, s.vz); }
       }
@@ -477,7 +488,7 @@
       const H = FL.hud, hp = this.hp / this.hpMax;
       H.set(this.hTL, `<div class="hud-big"><span class="coins">${this.coins}</span></div>` +
         `<div>Panzerung</div>${H.meter(hp, hp < 0.35 ? 'red' : hp < 0.65 ? 'gold' : '')}` +
-        `<div>Kanone ${this.cd <= 0 ? '<b style="color:#46dcff">bereit</b>' : 'lädt …'}</div>${H.meter(1 - Math.max(0, this.cd) / this.reload, 'cyan')}`);
+        `<div>Kanone ${this.cd <= 0 ? '<b style="color:#46dcff">bereit</b>' : 'lädt …'}</div>${H.meter(1 - Math.max(0, this.cd) / this.reload, 'cyan')}<div>Zielweite ${Math.round(this.range)} m</div>`);
       let tc = `<div>${this.goal === 'tanks' ? 'Panzer' : 'Ziele'}: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div>`;
       if (this.timeLeft > 0) tc += `<div>Zeit <b style="color:${this.timeLeft < 30 ? '#ef5a4c' : '#46dcff'}">${Math.floor(this.timeLeft / 60)}:${String(Math.floor(this.timeLeft % 60)).padStart(2, '0')}</b></div>`;
       const ath = this.th + this.tu;
