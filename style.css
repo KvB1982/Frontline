@@ -172,3 +172,7 @@ body.touch .hud-tr { right: calc(10px + env(safe-area-inset-right)); }
 .tright .fire { grid-area: 2 / 2; }
 .tright .wide { grid-area: 2 / 1; }
 .tright .textra { grid-area: 1 / 1 / 2 / 3; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; max-width: 330px; }
+.ttilt { position: absolute; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
+.tchip { padding: 10px 16px; border-radius: 999px; background: rgba(20, 30, 40, 0.6); border: 2px solid rgba(220, 235, 245, 0.45); color: #fff; font-weight: 700; font-size: 14px; }
+.tchip.on { border-color: var(--cyan); color: var(--cyan); }
+.tswipe { position: absolute; inset: 0; pointer-events: auto; touch-action: none; }

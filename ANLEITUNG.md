@@ -118,7 +118,7 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 | Einsatz | Tasten |
 | --- | --- |
 | Bodenkampf | ← → bewegen, Leertaste schießen, ↓ Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, X Kanonentürme abfeuern, T Türme an/aus, 1 2 3 Drohnen, Hubschrauber, Bomber, V vorrücken |
-| Kampfflugzeug | ← → lenken, ↑ steigen, ↓ sinken, Leertaste Bordkanone, B Bombe, R Raketen |
+| Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen |
 | Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone |
 | Immer | P oder Esc Pause, M Ton an/aus |
 
@@ -132,5 +132,9 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 ## Auf dem iPad spielen
 
 Auf dem iPad gibt es Knöpfe auf dem Bildschirm: links zum Bewegen oder Lenken, rechts zum Schießen und für alles andere. Das iPad quer halten.
+
+Im Bodenkampf kannst du auch wischen: mit dem Finger nach links oder rechts ziehen bewegt deinen Trupp, nach unten wischen und halten ist Deckung. Die Pfeil-Knöpfe gehen weiterhin.
+
+Das Kampfflugzeug steuerst du auf dem iPad durch Neigen, wie mit einem Steuerknüppel: das iPad wie ein Lenkrad nach links oder rechts drehen für Kurven, die Oberkante zu dir ziehen für Nase hoch, von dir weg kippen für Nase runter. Beim ersten Flug fragt das iPad einmal, ob das Spiel den Bewegungssensor benutzen darf. Oben am Bildschirm kannst du mit „Neigen: an/aus“ auf die Pfeil-Knöpfe umschalten und mit „Mitte neu“ die Haltung festlegen, bei der das Flugzeug geradeaus fliegt.
 
 Am iPad lässt sich die `index.html` nicht per Doppelklick starten. Das Spiel braucht eine Adresse im Internet (zum Beispiel über GitHub Pages). Diese Adresse einmal in Safari öffnen, dann auf „Teilen“ und „Zum Home-Bildschirm“ tippen. Danach hat das Spiel ein eigenes Icon, startet im Vollbild und läuft auch ohne Internet. Der Spielstand auf dem iPad ist getrennt von dem am PC.

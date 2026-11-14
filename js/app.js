@@ -71,6 +71,7 @@
     if (A.backdrop) A.backdrop.destroy();
     A.backdrop = new Backdrop();
     A.paused = false; A.done = false;
+    FL.tilt.stop(false);
     FL.touch.hide();
     clearHud();
   };
@@ -235,6 +236,8 @@
   const launch = (cfg, lo, ctx) => {
     if (A.launching) return;
     A.launching = true;
+    // Neigungssteuerung fürs Flugzeug: Die Erlaubnis muss direkt beim Fingertipp geholt werden.
+    if (cfg.kind === 'flight' && FL.touch.active && FL.save.tilt !== false) FL.tilt.start(false); else FL.tilt.stop(false);
     FL.onKey = null;
     fade(() => {
       A.launching = false;

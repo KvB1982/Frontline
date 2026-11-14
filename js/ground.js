@@ -465,6 +465,16 @@
         if (FL.down('ArrowLeft', 'KeyA')) { this.x += 7 * dt; moving = true; }
         if (FL.down('ArrowRight', 'KeyD')) { this.x -= 7 * dt; moving = true; }
       }
+      // Wischen auf dem iPad: Der Trupp folgt dem Finger (nach rechts wischen = nach rechts laufen)
+      if (FL.touch.swipe) {
+        const K = (2 * ROAD) / (window.innerWidth * 0.4);            // so viele Meter pro Pixel
+        if (this.ducking || this.advancing) FL.touch.swipe = 0;
+        else {
+          const want = FL.clamp(FL.touch.swipe * K, -3, 3), step = FL.clamp(want, -18 * dt, 18 * dt);
+          this.x -= step; FL.touch.swipe = (want - step) / K;
+          if (Math.abs(step) > 0.002) moving = true; else FL.touch.swipe = 0;
+        }
+      }
       this.x = FL.clamp(this.x, -ROAD + 0.3, ROAD - 0.3);
       const squad = this.members();
 

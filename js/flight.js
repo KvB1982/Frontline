@@ -148,7 +148,7 @@
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = '← → lenken · ↑ steigen · ↓ sinken · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · P Pause';
+      hint.innerHTML = 'Wie ein Steuerknüppel: ← → lenken · ↓ ziehen = Nase hoch · ↑ drücken = Nase runter · Leertaste Bordkanone · B Bombe (gelber Kreis zeigt den Einschlag)' + (this.lo.p_rocket ? ' · R Raketen' : '') + ' · P Pause';
     }
 
     // ---------------------------------------------------------------- Treffer
@@ -217,7 +217,9 @@
 
       // lenken
       let turn = (FL.down('ArrowLeft', 'KeyA') ? 1 : 0) - (FL.down('ArrowRight', 'KeyD') ? 1 : 0);
-      let climb = (FL.down('ArrowUp', 'KeyW') ? 1 : 0) - (FL.down('ArrowDown', 'KeyS') ? 1 : 0);
+      // Steuerknüppel: nach hinten ziehen (Pfeil runter) hebt die Nase, nach vorn drücken (Pfeil hoch) senkt sie
+      let climb = (FL.down('ArrowDown', 'KeyS') ? 1 : 0) - (FL.down('ArrowUp', 'KeyW') ? 1 : 0);
+      if (FL.tilt.on) { turn = FL.clamp(turn + FL.tilt.turn, -1, 1); climb = FL.clamp(climb + FL.tilt.climb, -1, 1); }
       const far = Math.hypot(this.x, this.z - 30);
       if (far > 1000) {
         // zu weit weg: Das Flugzeug dreht von selbst zum Zielgebiet zurück
