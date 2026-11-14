@@ -143,6 +143,17 @@ FL.SCENARIOS = [
     gefahr: 'Dichte Flak und bis zu drei Jäger gleichzeitig.', tipp: 'Bau vorher das Flugzeug voll aus. Flak-Stellungen zuerst, dann wird es ruhiger.',
     sc: { seed: 17, prim: ['hq', 'hq', 'radar', 'radar', 'hangar', 'hangar', 'depot', 'depot', 'bunker', 'bunker'], flakPrim: false, flak: 3, jets: { n: 3, cd: 12 } } },
 
+  { id: 'f9', kind: 'flight', theme: 'wald', tier: 2, reward: 420, name: 'Blockadebrecher',
+    lage: 'Vor der Küste kreuzen drei gegnerische Kriegsschiffe und sperren den Hafen. An Land steht nur eine kleine Flak-Stellung.',
+    auftrag: 'Versenke alle drei Schiffe.',
+    gefahr: 'Die Schiffe fahren und schießen mit ihrer Bordflak zurück, sobald du näher als etwa 400 m kommst.', tipp: 'Flieg in Fahrtrichtung über das Schiff und wirf die Bombe etwas früher. Raketen und Bordkanone treffen auch aus der Ferne.',
+    sc: { seed: 21, ships: { n: 3, big: 1 }, flak: -1 } },
+  { id: 'f10', kind: 'flight', theme: 'daemmerung', tier: 4, reward: 650, name: 'Seeschlacht',
+    lage: 'Ein ganzer Flottenverband ist unterwegs: zwei Zerstörer und vier Schnellboote. Jäger decken ihn aus der Luft.',
+    auftrag: 'Versenke alle sechs Schiffe.',
+    gefahr: 'Sechs Schiffe mit Flak und bis zu zwei Jäger gleichzeitig.', tipp: 'Erst die Schnellboote am Rand, dann die großen Zerstörer. Die brauchen mehr als einen Treffer.',
+    sc: { seed: 33, ships: { n: 6, big: 2 }, flakPrim: false, jets: { n: 2, cd: 14 } } },
+
   { id: 't1', kind: 'tank', theme: 'wald', tier: 0.5, reward: 260, name: 'Spähtrupp',
     lage: 'Im Wald wurden zwei kleine Lager des Gegners gemeldet. Niemand weiß genau, was dort steht.',
     auftrag: 'Fahr hin und zerstöre die markierten Ziele in beiden Lagern.',

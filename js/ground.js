@@ -29,6 +29,7 @@
       this.enemies = []; this.bullets = []; this.ebullets = []; this.shells = []; this.aircraft = [];
       this.shake = 0; this.section = 0; this.scroll = 0; this.advancing = 0; this.secured = false;
       this.wave = 0; this.waveSpawned = 0; this.waveBreak = 0; this.waveSize = 0;
+      this.flank = 0; this.flankX = 0;                               // Trupp nach links (+1) oder rechts (-1) verschoben
       this.structures = []; this.spinners = []; this.burning = []; this.endT = -1; this.fortCd = 2; this.nestCd = 0;
 
       this.buildSquad();
@@ -169,7 +170,7 @@
       this.hTL = FL.hud.box('hud-tl'); this.hTC = FL.hud.box('hud-tc'); this.hTR = FL.hud.box('hud-tr');
       this.hBC = FL.hud.box('hud-bc');
       const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = '← → bewegen · Leertaste schießen · ↓ Deckung · E aufhelfen · X Geschütze · 1 2 3 4 Unterstützung' + (this.kind === 'attack' ? ' · V vorrücken' : '') + ' · P Pause';
+      hint.innerHTML = '← → bewegen · Leertaste schießen · ↓ Deckung · E aufhelfen · X Geschütze · 1 2 3 4 Unterstützung' + (this.kind === 'attack' ? ' · V vorrücken · Q R Trupp nach links/rechts' : '') + ' · P Pause';
       this.hCover = FL.el('div', 'cover-note', 'IN DECKUNG', FL.hud.root);
     }
 
@@ -201,7 +202,8 @@
     keyLeft() { return this.structures.filter(s => s.alive && s.key).length; }
     members() {
       this.hero.x = this.x;
-      for (const a of this.allies) if (!a.down) a.x = FL.clamp(this.x + a.offset, -ROAD - 2.5, ROAD + 2.5);
+      const fl = Math.abs(this.flankX) / 12;                         // 0 = beim Helden, 1 = ganz außen an der Flanke
+      for (const a of this.allies) if (!a.down) { a.z = ALLY_Z + fl * 9; a.x = fl > 0.02 ? FL.clamp(this.x * (1 - 0.7 * fl) + a.offset * (1 - 0.35 * fl) + this.flankX, -17, 17) : FL.clamp(this.x + a.offset, -ROAD - 2.5, ROAD + 2.5); }
       return [this.hero, ...this.allies, ...this.vehicles];
     }
 
@@ -353,17 +355,19 @@
     }
     allyShoot(a) {
       const w = FL.WEAPONS[Math.max(0, this.lo.weapon - 1)];
-      const near = this.enemies.filter(e => e.dying < 0 && Math.abs(e.x - a.x) < 3.2 && e.z < Z_FAR - 3);
+      // an der Flanke schießt der Trupp schräg über die ganze Straße (Kreuzfeuer) und trifft härter
+      const side = Math.abs(this.flankX) > 6, bonus = side ? 1.35 : 1;
+      const near = this.enemies.filter(e => e.dying < 0 && (side || Math.abs(e.x - a.x) < 3.2) && e.z < Z_FAR - 3);
       let vx = 0;
       if (near.length) {
         const tg = near.reduce((p, e) => e.z < p.z ? e : p);
-        vx = (tg.x - a.x) / Math.max(0.15, (tg.z - ALLY_Z) / 65);
+        vx = (tg.x - a.x) / Math.max(0.15, (tg.z - a.z) / 65);
       } else if (this.fortActive()) {
         const s = this.nearestStructure(a.x);
         if (!s) return;
-        vx = (s.x + FL.rand(-s.r, s.r) * 0.6 - a.x) / ((s.zw - this.scroll - ALLY_Z) / 65);
+        vx = (s.x + FL.rand(-s.r, s.r) * 0.6 - a.x) / ((s.zw - this.scroll - a.z) / 65);
       } else return;
-      for (let k = 0; k < w.shots; k++) this.addBullet(a.x + (k - (w.shots - 1) / 2) * 0.3, ALLY_Z + 0.8, vx, 65, w.dmg, w.color);
+      for (let k = 0; k < w.shots; k++) this.addBullet(a.x + (k - (w.shots - 1) / 2) * 0.3, a.z + 0.8, vx, 65, w.dmg * bonus, w.color);
     }
     pickTarget(x) {
       let best = null;
@@ -457,6 +461,11 @@
       else if (code === 'Digit3' || code === 'Numpad3') this.useSpecial(2);
       else if (code === 'Digit4' || code === 'Numpad4') this.useSpecial(3);
       else if (code === 'KeyV') this.advance();
+      else if ((code === 'KeyQ' || code === 'KeyR') && this.kind === 'attack' && this.allies.length) {
+        this.flank = FL.clamp(this.flank + (code === 'KeyQ' ? 1 : -1), -1, 1);
+        FL.audio.play('click');
+        FL.hud.msg(this.flank ? 'Trupp greift von ' + (this.flank > 0 ? 'links' : 'rechts') + ' an: Kreuzfeuer!' : 'Trupp zurück in die Mitte', C.cyan, true);
+      }
     }
 
     // ---------------------------------------------------------------- ein Zeitschritt
@@ -495,10 +504,12 @@
         }
       }
       this.x = FL.clamp(this.x, -ROAD + 0.3, ROAD - 0.3);
+      this.flankX = FL.lerp(this.flankX, this.flank * 12, 1 - Math.exp(-2.2 * dt));
+      if (Math.abs(this.flankX - this.flank * 12) > 0.4) moving = true;
       const squad = this.members();
 
       if (this.ducking) this.hero.hp = Math.min(this.hero.max, this.hero.hp + 1.2 * dt);
-      else if (FL.down('Space') && this.fireCd <= 0 && !this.advancing) { this.fireCd = FL.WEAPONS[lo.weapon].rate; this.shoot(); }
+      else if (FL.down('Space', 'Mouse0') && this.fireCd <= 0 && !this.advancing) { this.fireCd = FL.WEAPONS[lo.weapon].rate; this.shoot(); }
 
       // Kameraden aufhelfen, Fahrzeuge reparieren
       let helping = null;
@@ -509,7 +520,7 @@
         m.downT += dt;
         const need = (isVeh(m) ? 2 : 1.2) * (lo.medkit ? 0.5 : 1);
         if (m === helping) m.revive += dt; else m.revive = Math.max(0, m.revive - dt);
-        const auto = this.kind === 'defend' && lo.medic && !isVeh(m) && m.downT > 7;
+        const auto = !isVeh(m) && Math.abs(m.x) > ROAD + 3 && m.downT > 9;          // an der Flanke kommt man nicht hin: Der Kamerad rappelt sich selbst auf
         if (m.revive >= need || auto) {
           m.down = false; m.hp = m.max; FL.audio.play('up');
           FL.hud.msg(isVeh(m) ? 'Repariert!' : 'Kamerad ist wieder dabei!', C.green, true);
@@ -803,7 +814,7 @@
       let tl = `<div class="hud-big"><span class="coins">${this.coins}</span></div>`;
       tl += this.kind === 'attack' ? `<div>Leben ${H.hearts(this.lives, 4 + lo.lives)}</div>` : `<div>Basis</div>${H.meter(this.baseHp / this.baseMax, this.baseHp / this.baseMax < 0.35 ? 'red' : 'cyan')}`;
       tl += `<div>Gesundheit</div>${H.meter(hp, hp < 0.3 ? 'red' : hp < 0.6 ? 'gold' : '')}`;
-      tl += `<div><b style="color:#${w.color.toString(16).padStart(6, '0')}">${w.name}</b> · Armee ${up}/${this.allies.length + 1}</div>`;
+      tl += `<div><b style="color:#${w.color.toString(16).padStart(6, '0')}">${w.name}</b> · Armee ${up}/${this.allies.length + 1}${this.flank ? ' · <b style="color:#46dcff">Trupp ' + (this.flank > 0 ? 'links' : 'rechts') + '</b>' : ''}</div>`;
       H.set(this.hTL, tl);
 
       let tc = '';

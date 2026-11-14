@@ -287,6 +287,24 @@
     for (const x of [-0.5, 0.5]) for (const z of [-0.5, 0.5]) { g.add(box(0.06, 0.04, 0.06, mat(0x2a2f36), x * 0.6, 0.02, z * 0.6)); g.add(cyl(0.28, 0.28, 0.02, 10, mat(0x9aa4ae), x, 0.1, z)); }
     return g;
   };
+  // Kriegsschiff für die Seeziele: Rumpf, Aufbauten, Brücke, Mast, Geschütztürme. big = Zerstörer, sonst Schnellboot
+  FL.shipModel = big => {
+    const g = new THREE.Group(), L = big ? 46 : 26, W = big ? 7.5 : 5;
+    const hull = mat(0x6e777e), deck = mat(0x4c5258), sup = mat(0x8a9399), dark = mat(0x2c3136);
+    g.add(box(W, 3.2, L * 0.72, hull, 0, 1.2, -L * 0.04));
+    const bow = cyl(0, W * 0.5, L * 0.3, 4, hull, 0, 1.2, L * 0.47); bow.rotation.x = Math.PI / 2; bow.rotation.y = Math.PI / 4; bow.scale.set(1, 1, 3.2 / (W * 0.72)); g.add(bow);
+    g.add(box(W * 0.96, 0.25, L * 0.72, deck, 0, 2.9, -L * 0.04), box(W + 0.1, 0.5, L * 0.72, mat(0x8c2a22), 0, 0.05, -L * 0.04));
+    g.add(box(W * 0.7, 2.6, L * 0.3, sup, 0, 4.3, -L * 0.05), box(W * 0.55, 2.2, L * 0.13, sup, 0, 6.7, L * 0.02), box(W * 0.57, 0.6, L * 0.131, mat(0x10161c, { shiny: 80 }), 0, 7.1, L * 0.021));
+    g.add(cyl(0.7, 0.9, 2.6, 8, dark, 0, 6.9, -L * 0.14), cyl(0.12, 0.16, 6, 5, dark, 0, 10.6, L * 0.02), box(2.6, 0.12, 0.12, dark, 0, 11.6, L * 0.02));
+    const spin = new THREE.Group(); spin.position.set(0, 9.3, L * 0.02); spin.add(box(2.2, 0.9, 0.14, sup, 0, 0, 0)); g.add(spin);
+    const gun = new THREE.Group(); gun.position.set(0, 3.0, L * 0.26);
+    gun.add(cyl(1.3, 1.5, 1.2, 8, sup, 0, 0.6, 0));
+    { const b = cyl(0.16, 0.2, 4.4, 6, dark, 0, 1.1, 2.2); b.rotation.x = Math.PI / 2 - 0.25; gun.add(b); }
+    g.add(gun);
+    if (big) { const g2 = new THREE.Group(); g2.position.set(0, 3.0, -L * 0.3); g2.add(cyl(1.1, 1.3, 1.0, 8, sup, 0, 0.5, 0)); const b = cyl(0.13, 0.16, 3.4, 6, dark, 0, 0.9, -1.7); b.rotation.x = -(Math.PI / 2 - 0.25); g2.add(b); g.add(g2); g.add(box(W * 0.6, 0.2, L * 0.16, mat(0x3a4046), 0, 3.1, -L * 0.36 + 3)); }
+    g.userData = { r: big ? 13 : 8, h: big ? 9 : 7, hp: big ? 30 : 16, kind: 'ship', gun, spin, len: L };
+    return g;
+  };
   FL.bombModel = () => {
     const g = new THREE.Group(), m = mat(0x3a4038);
     const b = ball(0.28, m, 0, 0, 0, 8, 6); b.scale.z = 2.4; g.add(b);

@@ -289,7 +289,7 @@
       if (A.mode) { A.mode.destroy(); A.mode = null; }
       clearScreen(); FL.keys = {};
       A.ctx = { cfg, lo, ctx }; A.paused = false; A.done = false;
-      const Mode = cfg.kind === 'flight' ? FL.FlightMission : cfg.kind === 'tank' ? FL.TankMission : FL.GroundBattle;
+      const Mode = cfg.kind === 'flight' ? FL.FlightMission : cfg.kind === 'tank' ? FL.TankMission : cfg.kind === 'defend' ? FL.BaseDefense : FL.GroundBattle;
       A.mode = new Mode(cfg, lo);
       FL.touch.show(cfg.kind, lo);
       FL.onKey = code => {

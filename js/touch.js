@@ -176,6 +176,7 @@
       if (lo.bomber) make(extra, '3', 'Digit3', 'small orange', TAP);
       if (lo.arty) make(extra, '4', 'Digit4', 'small orange', TAP);
       if (kind === 'attack') make(extra, 'Vor', 'KeyV', 'small gold', TAP);
+      if (kind === 'attack' && lo.allies) { make(extra, 'Trupp ◀', 'KeyQ', 'small cyan', TAP); make(extra, 'Trupp ▶', 'KeyR', 'small cyan', TAP); }
     } else {
       // runder Steuerknüppel wie auf einem Gamepad: in jede Richtung ziehen, je weiter desto stärker
       const stick = FL.el('div', 'tstick', '', left), knob = FL.el('div', 'tknob', '', stick);

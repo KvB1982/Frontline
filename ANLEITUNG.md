@@ -156,7 +156,9 @@ Wer neben der Bahn, schräg oder zu spät aufsetzt, startet automatisch durch un
 
 ## Flugzeug: Schub, Fahrwerk und Zielhilfe
 
-- Das Flugzeug steigt jetzt bis 2600 m. Oben ist man vor der Flak sicherer, unten trifft man leichter.
+- Das Flugzeug steigt jetzt bis 6000 m. Oben ist man vor der Flak sicherer, unten trifft man leichter.
+- Schub: Im Leerlauf fliegt es nur etwa 270 km/h, mit vollem Schub 840, mit Nachbrenner 1300. Das Tempo steht oben links.
+- Beim Rollen bleibt der Horizont waagerecht, nur das Flugzeug dreht sich.
 - Zielhilfe: Liegt ein Ziel ungefähr voraus, erscheint ein grüner Ring darauf. Die Bordkanone trifft dann genau dieses Ziel, auch wenn die Nase nicht exakt darauf zeigt.
 - Fahrwerk: Nach dem Abheben mit G (iPad: Knopf „Fahrwerk“) einfahren, sonst bleibt das Flugzeug langsam. Vor der Landung wieder ausfahren, sonst gibt es eine Bauchlandung und die kostet Panzerung.
 - Nachbrenner: macht das Flugzeug viel schneller, verbraucht aber mehr als doppelt so viel Treibstoff.
@@ -172,6 +174,26 @@ Wer neben der Bahn, schräg oder zu spät aufsetzt, startet automatisch durch un
 ## Einsatzorte
 
 Der Einsatzort liegt bei jedem Flug woanders: 1,5 bis 2,6 km von der Basis entfernt, in einer zufälligen Richtung und in einer von vier Landschaften (Berge, Wald, Meer, Wüste). Nach dem Start steht oben die Richtung und Entfernung, auf dem Radar zeigt ein gelber Ring den Einsatzort, der grüne Punkt ist die eigene Basis.
+
+## Basis verteidigen: Rundumsicht
+
+Die Verteidigung ist neu gebaut. Deine Basis liegt mitten auf einem offenen Feld und du stehst im Sandsackring in der Mitte.
+
+- Umsehen: Pfeil links und rechts (iPad: über den Bildschirm wischen oder die Pfeil-Knöpfe). Du kannst dich ganz im Kreis drehen.
+- Die Gegner kommen von zwei Seiten gleichzeitig, in späteren Wellen von drei oder vier. Zu Beginn jeder Welle steht da, aus welchen Himmelsrichtungen.
+- Radar oben rechts: Deine Blickrichtung zeigt nach oben. Rot sind Gegner am Boden, pink sind Hubschrauber und Flugzeuge, gelbe Ringe am Rand zeigen, von wo die Welle kommt. Oben in der Mitte zeigt ein Pfeil zum nächsten Gegner.
+- Schießen: Leertaste, Mausklick oder FEUER. Die Waffe rastet auf den Gegner ein, der am nächsten an deiner Blickrichtung liegt, auch auf Ziele in der Luft.
+- Hubschrauber kreisen um die Basis und schießen Raketen. Flugzeuge fliegen zweimal darüber und werfen Bomben. Beide kann man abschießen.
+- Die Gegner bleiben vor der Basis stehen und beschießen sie. Fällt der Balken „Basis“ auf null, ist der Einsatz verloren. Nach jeder Welle wird die Basis etwas ausgebessert.
+- Kameraden, MG-Nester, Panzer und Raketenwerfer schießen von selbst. X feuert die Geschütze, 1 bis 4 rufen Drohnen, Hubschrauber, Bomber (fliegt in deine Blickrichtung) und Artillerie.
+
+## Angriff: Trupp nach links oder rechts schicken
+
+Beim Angriff verschiebt Q den Trupp nach links und R nach rechts (iPad: Knöpfe „Trupp ◀“ und „Trupp ▶“). Die Kameraden gehen dann seitlich nach vorn und schießen schräg über die Straße. Dieses Kreuzfeuer trifft härter, und an der gegnerischen Basis greifen sie die Türme und Mauern an der Seite an. Noch einmal in die Gegenrichtung drücken holt sie zurück in die Mitte.
+
+## Schiffe angreifen
+
+Unter „Sondereinsätze“ gibt es zwei neue Flüge aufs Meer: „Blockadebrecher“ (drei Schiffe) und „Seeschlacht“ (sechs Schiffe und Jäger). Die Schiffe fahren, schießen mit Bordflak und sinken, wenn sie genug Treffer haben. Zerstörer halten mehr aus als Schnellboote. Auch bei normalen Flügen ans Meer liegen zwei Schiffe vor der Küste.
 
 ## Modelle
 
