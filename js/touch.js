@@ -167,10 +167,11 @@
       make(right, 'Deckung', 'ArrowDown', 'wide cover');
       const extra = FL.el('div', 'textra', '', right);
       make(extra, 'Helfen', 'KeyE', 'small');
-      if (lo.towers) make(extra, 'Türme', 'KeyX', 'small cyan', TAP);
+      if (lo.towers) make(extra, 'Geschütz', 'KeyX', 'small cyan', TAP);
       if (lo.drones) make(extra, '1', 'Digit1', 'small orange', TAP);
       if (lo.heli) make(extra, '2', 'Digit2', 'small orange', TAP);
       if (lo.bomber) make(extra, '3', 'Digit3', 'small orange', TAP);
+      if (lo.arty) make(extra, '4', 'Digit4', 'small orange', TAP);
       if (kind === 'attack') make(extra, 'Vor', 'KeyV', 'small gold', TAP);
     } else {
       // runder Steuerknüppel wie auf einem Gamepad: in jede Richtung ziehen, je weiter desto stärker
@@ -216,6 +217,7 @@
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
       } else {
         make(extra, 'Turm ◀', 'KeyA', 'small'); make(extra, 'Mitte', 'KeyW', 'small'); make(extra, 'Turm ▶', 'KeyD', 'small');
+        FL.SPECIALS.forEach((sp, i) => { if (lo[sp.id]) make(extra, sp.key, 'Digit' + sp.key, 'small orange', TAP); });
       }
     }
   };

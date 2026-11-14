@@ -221,7 +221,7 @@
       put('hq', DOOR.x, -1029, 0, 7); put('hangar', -347, -1086, Math.PI / 2, 9); put('tower', -300, -1031); put('radar', -318, -1029);
       put('barracks', -372, -1040, Math.PI / 2, 6); put('tent', -372, -1066);
       for (const [x, z] of [[-340, -1104], [-306, -1104]]) {
-        const j = FL.jetModel(0x66788a, 0x2a6fd0); j.position.set(x, GY, z); j.rotation.y = Math.PI / 2; st.add(j);
+        const j = FL.jetModel(0x66788a, 0x2a6fd0); j.userData.gear.visible = true; j.position.set(x, GY, z); j.rotation.y = Math.PI / 2; st.add(j);
         this.baseSolid.push({ x, z, r: 5.5 });
       }
       for (const [x, z, r] of [[-330, -1040, 1.2], [-326, -1040.5, -0.6], [-296, -1060, 2.6]]) {
@@ -602,6 +602,7 @@
       this.jet.position.set(this.x, this.y, this.z);
       this.jet.rotation.set(this.pitch, this.th, this.roll);
       this.jet.visible = !(this.invuln > 0 && Math.floor(this.t * 14) % 2);
+      this.jet.userData.gear.visible = this.y < GY + 6;
     }
 
     // Flak: Die Granaten platzen dort, wo das Flugzeug bei geradem Flug gleich wäre. Kurven und Höhe wechseln hilft.

@@ -93,46 +93,108 @@
       return { body: mat(0xffffff, { map: FL.tex.camo(a, b, '#3a3a36') }), dark: mat(th.enemyDark), track: mat(0x1c1c1c) };
     }
   };
+  // Wanne mit Ketten, Laufrollen und Schürzen (für Panzer und Geschützwagen)
+  const WHEEL = mat(0x30322e), RUBBER = mat(0x161616), GLASS = mat(0x243746, { shiny: 90 });
+  const hull = (g, pal, len) => {
+    const L = len || 6.2, n = Math.round(L / 0.95);
+    for (const sx of [-1, 1]) {
+      g.add(box(0.72, 0.78, L, pal.track, sx * 1.48, 0.42, 0));
+      for (const z of [-L / 2, L / 2]) { const e = cyl(0.39, 0.39, 0.72, 10, pal.track, sx * 1.48, 0.45, z); e.rotation.z = Math.PI / 2; g.add(e); }
+      for (let i = 0; i < n; i++) { const w = cyl(0.34, 0.34, 0.16, 10, WHEEL, sx * 1.87, 0.38, -L / 2 + 0.5 + i * (L - 1) / (n - 1)); w.rotation.z = Math.PI / 2; g.add(w); }
+      const sk = box(0.1, 0.5, L - 0.5, pal.body, sx * 1.9, 0.86, -0.1); g.add(sk);
+      g.add(box(1.0, 0.1, L + 0.3, pal.dark, sx * 1.48, 1.0, 0));
+    }
+    g.add(box(2.4, 0.75, L - 0.9, pal.body, 0, 0.98, -0.25));
+    const gl = box(2.4, 0.5, 1.7, pal.body, 0, 1.0, L / 2 - 0.65); gl.rotation.x = 0.5; g.add(gl);
+    const lo = box(2.4, 0.45, 0.9, pal.dark, 0, 0.62, L / 2 - 0.25); lo.rotation.x = -0.6; g.add(lo);
+    g.add(box(2.3, 0.5, 0.25, pal.dark, 0, 0.95, -L / 2 + 0.05));
+    for (const sx of [-1, 1]) { g.add(box(0.5, 0.3, 0.7, mat(0x2a2a28), sx * 0.75, 1.42, -L / 2 + 0.75)); g.add(ball(0.09, G(0xfff2c0), sx * 0.95, 1.12, L / 2 - 0.02, 6, 5)); }
+  };
+  const barrelOf = (pal, len, r) => {
+    const b = new THREE.Group();
+    const t = cyl(r, r * 1.15, len, 8, pal.dark, 0, 0, len / 2); t.rotation.x = Math.PI / 2; b.add(t);
+    const ev = cyl(r * 1.6, r * 1.6, len * 0.16, 8, pal.dark, 0, 0, len * 0.58); ev.rotation.x = Math.PI / 2; b.add(ev);
+    const mz = cyl(r * 1.5, r * 1.5, 0.35, 8, mat(0x1c1c1c), 0, 0, len); mz.rotation.x = Math.PI / 2; b.add(mz);
+    return b;
+  };
   FL.tankModel = pal => {
     const g = new THREE.Group();
-    for (const sx of [-1, 1]) {
-      g.add(box(0.75, 0.9, 6.0, pal.track, sx * 1.45, 0.45, 0));
-      for (let i = 0; i < 5; i++) { const w = cyl(0.42, 0.42, 0.2, 10, mat(0x3a3b38), sx * 1.86, 0.45, -2.2 + i * 1.1); w.rotation.z = Math.PI / 2; g.add(w); }
-      g.add(box(0.95, 0.12, 6.2, pal.dark, sx * 1.45, 0.96, 0));
-    }
-    g.add(box(2.5, 0.8, 5.6, pal.body, 0, 1.0, 0));
-    const front = box(2.5, 0.6, 1.2, pal.body, 0, 0.9, 3.0); front.rotation.x = 0.6; g.add(front);
+    hull(g, pal, 6.2);
     const turret = new THREE.Group();
     turret.position.set(0, 1.4, -0.2);
-    turret.add(box(2.0, 0.75, 2.5, pal.body, 0, 0.4, 0), box(1.5, 0.5, 0.8, pal.dark, 0, 0.35, 1.5));
-    const barrel = cyl(0.13, 0.15, 3.6, 8, pal.dark, 0, 0.42, 3.4); barrel.rotation.x = Math.PI / 2; turret.add(barrel);
-    const muzzle = cyl(0.2, 0.2, 0.5, 8, pal.dark, 0, 0.42, 5.1); muzzle.rotation.x = Math.PI / 2; turret.add(muzzle);
-    turret.add(cyl(0.35, 0.35, 0.2, 8, pal.dark, 0.4, 0.86, -0.3), box(0.06, 0.9, 0.06, mat(0x222222), -0.7, 1.2, -0.9));
+    turret.add(box(2.1, 0.72, 2.3, pal.body, 0, 0.38, -0.1));
+    for (const sx of [-1, 1]) { const c = box(0.9, 0.7, 1.5, pal.body, sx * 0.72, 0.37, 1.35); c.rotation.y = sx * 0.42; turret.add(c); }
+    turret.add(box(0.9, 0.6, 0.9, pal.dark, 0, 0.38, 1.55));
+    turret.add(box(1.9, 0.5, 0.9, pal.dark, 0, 0.42, -1.6));                                   // Staukorb hinten
+    const barrel = barrelOf(pal, 4.4, 0.12); barrel.position.set(0, 0.42, 1.8); turret.add(barrel);
+    turret.add(cyl(0.36, 0.4, 0.22, 10, pal.dark, 0.45, 0.85, -0.3), cyl(0.3, 0.3, 0.14, 10, pal.dark, -0.5, 0.8, 0.1));
+    const mg = cyl(0.035, 0.035, 1.1, 5, mat(GUN), 0.45, 1.12, 0.2); mg.rotation.x = Math.PI / 2; turret.add(mg, box(0.12, 0.2, 0.3, mat(GUN), 0.45, 1.05, -0.2));
+    for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) { const sm = cyl(0.07, 0.07, 0.3, 6, mat(0x222222), sx * 1.12, 0.5 + (i % 2) * 0.14, 0.5 - i * 0.2); sm.rotation.x = 1.1; turret.add(sm); }
+    turret.add(cyl(0.015, 0.015, 1.8, 4, mat(0x222222), -0.8, 1.6, -1.2), box(0.3, 0.22, 0.3, GLASS, -0.5, 0.92, 0.45));
     g.add(turret);
     g.userData = { turret, r: 3.2, h: 2.4 };
     return g;
   };
+  // geschütztes Geländefahrzeug mit MG-Stand auf dem Dach
   FL.jeepModel = pal => {
     const g = new THREE.Group();
-    g.add(box(1.9, 0.6, 3.8, pal.body, 0, 0.85, 0), box(1.9, 0.5, 1.3, pal.body, 0, 1.2, 1.2));
-    g.add(box(1.7, 0.55, 0.08, mat(0x6a8aa4, { shiny: 60 }), 0, 1.6, 0.6), box(1.8, 0.08, 1.3, pal.dark, 0, 1.92, -0.2));
-    for (const x of [-0.85, 0.85]) for (const z of [-0.4, 0.5]) g.add(box(0.08, 0.7, 0.08, pal.dark, x, 1.55, z - 0.3));
-    for (const x of [-1, 1]) for (const z of [-1.25, 1.25]) { const w = cyl(0.45, 0.45, 0.32, 10, mat(0x1a1a1a), x, 0.45, z); w.rotation.z = Math.PI / 2; g.add(w); }
-    const mg = cyl(0.05, 0.05, 1.2, 6, mat(GUN), 0, 2.15, 0.5); mg.rotation.x = Math.PI / 2; g.add(mg, box(0.1, 0.3, 0.1, mat(GUN), 0, 2.0, 0));
-    g.userData = { r: 2.2, h: 2.2 };
+    g.add(box(2.0, 0.55, 4.4, pal.dark, 0, 0.75, 0), box(2.0, 0.55, 1.5, pal.body, 0, 1.25, 1.4));
+    const hood = box(2.0, 0.1, 1.5, pal.body, 0, 1.52, 1.4); hood.rotation.x = 0.06; g.add(hood);
+    g.add(box(2.0, 1.0, 2.5, pal.body, 0, 1.5, -0.6), box(1.9, 0.08, 2.3, pal.dark, 0, 2.04, -0.6));
+    const ws = box(1.8, 0.6, 0.06, GLASS, 0, 1.7, 0.68); ws.rotation.x = -0.25; g.add(ws);
+    for (const sx of [-1, 1]) { g.add(box(0.05, 0.36, 0.8, GLASS, sx * 1.01, 1.72, 0.1), box(0.05, 0.36, 0.8, GLASS, sx * 1.01, 1.72, -0.95)); }
+    g.add(box(2.1, 0.3, 0.25, mat(0x242424), 0, 0.75, 2.25), box(1.2, 0.4, 0.06, mat(0x1a1a1a), 0, 1.2, 2.17));
+    for (const sx of [-1, 1]) g.add(ball(0.1, G(0xfff2c0), sx * 0.75, 1.25, 2.17, 6, 5));
+    for (const x of [-1.05, 1.05]) for (const z of [-1.4, 1.45]) { const w = cyl(0.52, 0.52, 0.36, 12, RUBBER, x, 0.52, z); w.rotation.z = Math.PI / 2; g.add(w); const hb = cyl(0.24, 0.24, 0.38, 8, WHEEL, x, 0.52, z); hb.rotation.z = Math.PI / 2; g.add(hb); }
+    { const sp = cyl(0.45, 0.45, 0.3, 10, RUBBER, 0, 1.3, -1.95); sp.rotation.x = Math.PI / 2; g.add(sp); }
+    g.add(cyl(0.5, 0.5, 0.14, 10, pal.dark, 0, 2.14, -0.5), box(0.9, 0.5, 0.06, pal.dark, 0, 2.45, -0.15));
+    const mg = cyl(0.045, 0.045, 1.3, 6, mat(GUN), 0, 2.42, 0.45); mg.rotation.x = Math.PI / 2; g.add(mg, box(0.14, 0.2, 0.4, mat(GUN), 0, 2.4, -0.2));
+    g.add(cyl(0.015, 0.015, 1.6, 4, mat(0x222222), -0.85, 2.8, -1.6));
+    g.userData = { r: 2.2, h: 2.4 };
     return g;
   };
   FL.werferModel = pal => {
     const g = new THREE.Group();
-    g.add(box(2.3, 0.5, 6.4, pal.dark, 0, 0.95, 0), box(2.3, 1.3, 1.7, pal.body, 0, 1.75, 2.3), box(2.1, 0.5, 0.08, mat(0x6a8aa4, { shiny: 60 }), 0, 2.0, 3.17));
-    for (const x of [-1.15, 1.15]) for (const z of [-2.2, -0.9, 2.2]) { const w = cyl(0.55, 0.55, 0.4, 10, mat(0x1a1a1a), x, 0.55, z); w.rotation.z = Math.PI / 2; g.add(w); }
+    g.add(box(2.3, 0.5, 6.4, pal.dark, 0, 0.95, 0), box(2.3, 1.3, 1.7, pal.body, 0, 1.75, 2.3));
+    const ws = box(2.1, 0.55, 0.08, GLASS, 0, 2.05, 3.17); ws.rotation.x = -0.12; g.add(ws);
+    for (const sx of [-1, 1]) g.add(box(0.05, 0.45, 0.9, GLASS, sx * 1.16, 2.05, 2.45), ball(0.1, G(0xfff2c0), sx * 0.85, 1.3, 3.17, 6, 5));
+    g.add(box(2.4, 0.3, 0.25, mat(0x242424), 0, 0.85, 3.25));
+    for (const x of [-1.15, 1.15]) for (const z of [-2.3, -1.0, 2.2]) { const w = cyl(0.58, 0.58, 0.42, 12, RUBBER, x, 0.58, z); w.rotation.z = Math.PI / 2; g.add(w); const hb = cyl(0.26, 0.26, 0.44, 8, WHEEL, x, 0.58, z); hb.rotation.z = Math.PI / 2; g.add(hb); }
     const pod = new THREE.Group();
     pod.position.set(0, 1.5, -1.6);
-    pod.add(box(2.0, 1.1, 3.0, pal.body, 0, 0.6, 0));
+    pod.add(box(2.0, 1.1, 3.0, pal.body, 0, 0.6, 0), box(2.1, 0.1, 3.1, pal.dark, 0, 1.18, 0));
     for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const t = cyl(0.19, 0.19, 0.12, 8, mat(0xd8d8d8), -0.72 + i * 0.48, 0.34 + j * 0.5, 1.52); t.rotation.x = Math.PI / 2; pod.add(t); }
     pod.rotation.x = -0.45;
-    g.add(pod);
+    g.add(pod, box(0.3, 0.9, 0.3, pal.dark, 0, 1.4, -0.4));
     g.userData = { r: 3.2, h: 3 };
+    return g;
+  };
+  // Geschützwagen: fährt beim Angriff mit und ersetzt dort die festen Geschütztürme (Stufe 1 bis 5)
+  FL.spgModel = (pal, lvl) => {
+    const g = new THREE.Group();
+    hull(g, pal, 6.4);
+    const head = new THREE.Group(); head.position.set(0, 1.4, -0.9);
+    if (lvl <= 3) {
+      head.add(box(2.3, 1.25, 3.0, pal.body, 0, 0.65, 0), box(2.1, 0.1, 2.8, pal.dark, 0, 1.32, 0), box(1.0, 0.7, 0.6, pal.dark, 0, 0.7, 1.7));
+      for (const x of (lvl === 3 ? [-0.38, 0.38] : [0])) { const b = barrelOf(pal, lvl === 1 ? 4.2 : 5.0, 0.14); b.position.set(x, 0.75, 1.6); b.rotation.x = -0.42; head.add(b); }
+      head.add(cyl(0.3, 0.3, 0.16, 8, pal.dark, 0.6, 1.42, -0.6), cyl(0.015, 0.015, 2, 4, mat(0x222222), -0.9, 2.2, -1.2));
+    } else {
+      const n = lvl === 4 ? 3 : 4, pod = new THREE.Group();
+      pod.add(box(2.3, 1.2, 3.2, mat(lvl === 4 ? 0x4a5240 : 0x3a4048), 0, 0, 0), box(2.4, 0.1, 3.3, pal.dark, 0, 0.64, 0));
+      for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) { const t = cyl(0.2, 0.2, 0.1, 8, mat(j ? 0xe8e8e8 : 0xc03020), (i - (n - 1) / 2) * 0.52, -0.28 + j * 0.56, 1.62); t.rotation.x = Math.PI / 2; pod.add(t); }
+      pod.position.y = 1.0; pod.rotation.x = -0.5; head.add(pod, box(0.9, 0.8, 0.9, pal.dark, 0, 0.3, 0));
+    }
+    g.add(head);
+    g.userData = { head, r: 3.2, h: 3.2 };
+    return g;
+  };
+  // gezogene Haubitze der Artillerie
+  FL.howitzerModel = pal => {
+    const g = new THREE.Group();
+    for (const sx of [-1, 1]) { const w = cyl(0.55, 0.55, 0.3, 12, RUBBER, sx * 1.0, 0.55, 0); w.rotation.z = Math.PI / 2; g.add(w); const leg = box(0.16, 0.16, 3.4, pal.dark, sx * 0.9, 0.3, -1.9); leg.rotation.y = sx * -0.3; g.add(leg); }
+    g.add(box(1.5, 0.5, 1.2, pal.body, 0, 0.8, 0), box(1.9, 1.1, 0.08, pal.body, 0, 1.4, 0.5));
+    const b = barrelOf(pal, 4.6, 0.13); b.position.set(0, 1.25, 0.2); b.rotation.x = -0.6; g.add(b);
+    g.userData = { r: 2.5, h: 3 };
     return g;
   };
 
@@ -145,34 +207,71 @@
     return g;
   });
   FL.jetModel = (color, accent) => {
-    const g = new THREE.Group(), m = mat(color, { shiny: 40 }), d = mat(accent, { shiny: 40 });
+    const g = new THREE.Group(), m = mat(color, { shiny: 40 }), d = mat(accent, { shiny: 40 }), dk = mat(0x222428);
     const fus = cyl(0.55, 0.75, 7, 10, m, 0, 0, 0); fus.rotation.x = Math.PI / 2; g.add(fus);
     const nose = cyl(0.02, 0.55, 3, 10, m, 0, 0, 5); nose.rotation.x = Math.PI / 2; g.add(nose);
+    const tip = cyl(0.01, 0.2, 1.1, 8, mat(0x3a3e44), 0, 0, 6.0); tip.rotation.x = Math.PI / 2; g.add(tip);
     const can = ball(0.5, mat(0x2a3f55, { shiny: 90 }), 0, 0.45, 2.2, 10, 8); can.scale.set(0.8, 0.7, 2.2); g.add(can);
+    g.add(box(0.06, 0.5, 0.06, dk, 0, 0.62, 2.0));
+    // Lufteinläufe links und rechts am Rumpf
+    for (const sx of [-1, 1]) { g.add(box(0.55, 0.7, 3.4, m, sx * 0.85, -0.12, 0.2), box(0.45, 0.55, 0.08, dk, sx * 0.85, -0.12, 1.92)); }
     const wing = new THREE.Mesh(wingGeo('jetwing', [[0, 1.5], [5.2, -2.6], [5.2, -3.4], [0, -2.4], [-5.2, -3.4], [-5.2, -2.6]], 0.16), m);
     wing.castShadow = true; g.add(wing);
     const tail = new THREE.Mesh(wingGeo('jettail', [[0, -1.8], [2.3, -3.9], [2.3, -4.5], [0, -3.8], [-2.3, -4.5], [-2.3, -3.9]], 0.12), m);
     tail.castShadow = true; g.add(tail);
-    const fin = new THREE.Mesh(wingGeo('jetfin', [[0, -1.6], [0.1, -3.2], [2.0, -4.3], [2.0, -3.6]], 0.12), d);
-    fin.rotation.z = Math.PI / 2; fin.position.set(0.06, 0.3, 0); g.add(fin);
-    for (const x of [-0.4, 0.4]) { const n = cyl(0.36, 0.42, 0.8, 10, mat(0x222428), x, 0, -3.8); n.rotation.x = Math.PI / 2; g.add(n); }
+    // zwei schräge Seitenleitwerke
+    for (const sx of [-1, 1]) {
+      const fin = new THREE.Mesh(wingGeo('jetfin', [[0, -1.6], [0.1, -3.2], [2.0, -4.3], [2.0, -3.6]], 0.1), d);
+      fin.rotation.z = Math.PI / 2 - sx * 0.3; fin.position.set(sx * 0.62, 0.25, 0); fin.castShadow = true; g.add(fin);
+    }
+    for (const x of [-0.4, 0.4]) { const n = cyl(0.36, 0.42, 0.8, 10, dk, x, 0, -3.8); n.rotation.x = Math.PI / 2; g.add(n); }
     const flame = FL.sprite(FL.tex.icon('glow'), 2.2, { add: true }); flame.position.set(0, 0, -4.6); flame.material.color.set(0xffa040); g.add(flame);
-    for (const x of [-3.2, 3.2]) { const r = cyl(0.12, 0.12, 2, 6, mat(0xd8d8d8), x, -0.3, -2.2); r.rotation.x = Math.PI / 2; g.add(r); }
+    // Raketen unter den Flügeln und an den Flügelspitzen
+    for (const x of [-3.2, 3.2, -1.9, 1.9]) {
+      const r = cyl(0.11, 0.11, 2, 6, mat(0xd8d8d8), x, -0.34, -1.6 - Math.abs(x) * 0.2); r.rotation.x = Math.PI / 2; g.add(r);
+      const c = cyl(0.01, 0.11, 0.4, 6, mat(0xc03020), x, -0.34, -0.4 - Math.abs(x) * 0.2); c.rotation.x = Math.PI / 2; g.add(c);
+      g.add(box(0.06, 0.2, 0.8, dk, x, -0.2, -1.6 - Math.abs(x) * 0.2));
+    }
+    for (const x of [-5.2, 5.2]) { const r = cyl(0.08, 0.08, 1.8, 6, mat(0xd8d8d8), x, 0.08, -2.9); r.rotation.x = Math.PI / 2; g.add(r); }
     g.add(box(0.5, 0.05, 1.4, d, -3.6, 0.1, -2.6), box(0.5, 0.05, 1.4, d, 3.6, 0.1, -2.6));
-    g.userData = { flame, r: 4, h: 2 };
+    // Fahrwerk: nur am Boden sichtbar
+    const gear = new THREE.Group();
+    for (const [x, z] of [[0, 3.2], [-1.3, -1.2], [1.3, -1.2]]) {
+      gear.add(box(0.1, 1.2, 0.1, mat(0xb8bcc0), x, -0.9, z));
+      const w = cyl(0.3, 0.3, 0.2, 10, mat(0x161616), x, -1.4, z); w.rotation.z = Math.PI / 2; gear.add(w);
+    }
+    gear.visible = false; g.add(gear);
+    g.userData = { flame, gear, r: 4, h: 2 };
     return g;
   };
+  // Kampfhubschrauber: schmaler Rumpf, zwei Kanzeln hintereinander, Stummelflügel mit Raketenbehältern
   FL.heliModel = () => {
-    const g = new THREE.Group(), m = mat(0xffffff, { map: FL.tex.camo('#4a5a3c', '#36452d', '#5f6e4c') });
-    const b = ball(1.3, m, 0, 0, 0, 12, 8); b.scale.set(1, 0.95, 2.1); g.add(b);
-    const c = ball(0.9, mat(0x2a3f55, { shiny: 90 }), 0, 0.25, 1.7, 10, 8); c.scale.set(1, 0.8, 1.3); g.add(c);
-    g.add(box(0.35, 0.4, 5, m, 0, 0.3, -4), box(0.1, 1.4, 0.9, m, 0, 0.9, -6.2));
-    const rotor = new THREE.Group(); rotor.position.set(0, 1.5, 0);
-    rotor.add(box(11, 0.06, 0.4, mat(0x1c1c1c), 0, 0, 0), box(0.4, 0.06, 11, mat(0x1c1c1c), 0, 0, 0), cyl(0.15, 0.15, 0.5, 6, mat(0x1c1c1c), 0, -0.2, 0));
+    const g = new THREE.Group(), m = mat(0xffffff, { map: FL.tex.camo('#4a5a3c', '#36452d', '#5f6e4c') }), dk = mat(0x1c1c1c), gl = mat(0x2a3f55, { shiny: 90 });
+    const b = ball(1.0, m, 0, 0, 0, 12, 8); b.scale.set(0.85, 1.05, 3.0); g.add(b);
+    g.add(box(1.5, 1.0, 2.6, m, 0, 0.55, -0.6));                                                 // Triebwerke oben
+    for (const sx of [-1, 1]) { const e = cyl(0.3, 0.36, 2.2, 8, mat(0x3c4634), sx * 0.75, 0.75, -0.9); e.rotation.x = Math.PI / 2; g.add(e); g.add(cyl(0.22, 0.22, 0.2, 8, dk, sx * 0.75, 0.75, -2.05)); }
+    const c1 = ball(0.6, gl, 0, 0.45, 2.0, 10, 8); c1.scale.set(0.9, 0.8, 1.3); g.add(c1);
+    const c2 = ball(0.62, gl, 0, 0.8, 0.95, 10, 8); c2.scale.set(0.95, 0.8, 1.2); g.add(c2);
+    const tb = cyl(0.16, 0.42, 5.4, 8, m, 0, 0.3, -5.0); tb.rotation.x = -Math.PI / 2; g.add(tb);
+    const fin = box(0.12, 1.9, 0.9, m, 0, 1.0, -7.5); fin.rotation.x = -0.35; g.add(fin);
+    g.add(box(1.8, 0.08, 0.6, m, 0, 0.4, -7.2));
+    const tr = new THREE.Group(); tr.position.set(0.16, 1.5, -7.75); tr.add(box(0.04, 2.0, 0.18, dk, 0, 0, 0), box(0.04, 0.18, 2.0, dk, 0, 0, 0)); g.add(tr);
+    // Stummelflügel mit Raketen
+    g.add(box(4.6, 0.12, 0.9, m, 0, -0.1, -0.3));
+    for (const sx of [-1, 1]) {
+      const pod = cyl(0.3, 0.3, 1.5, 8, mat(0x3a3e38), sx * 1.6, -0.45, -0.2); pod.rotation.x = Math.PI / 2; g.add(pod);
+      g.add(cyl(0.26, 0.26, 0.06, 8, dk, sx * 1.6, -0.45, 0.57).rotateX(Math.PI / 2));
+      for (const dx of [-0.16, 0.16]) { const r = cyl(0.07, 0.07, 1.4, 6, mat(0xd8d8d8), sx * 2.2 + dx, -0.32, -0.2); r.rotation.x = Math.PI / 2; g.add(r); }
+    }
+    // Bordkanone unter der Nase
+    g.add(box(0.3, 0.3, 0.5, dk, 0, -0.95, 2.0)); { const k = cyl(0.05, 0.05, 1.2, 6, dk, 0, -1.05, 2.7); k.rotation.x = Math.PI / 2; g.add(k); }
+    g.add(ball(0.22, dk, 0, 0.0, 3.05, 8, 6));
+    const rotor = new THREE.Group(); rotor.position.set(0, 1.75, -0.4);
+    rotor.add(box(12, 0.06, 0.42, dk, 0, 0, 0), box(0.42, 0.06, 12, dk, 0, 0, 0), cyl(0.14, 0.18, 0.7, 6, dk, 0, -0.3, 0), cyl(0.4, 0.4, 0.1, 8, mat(0x3a3e38), 0, 0.05, 0));
     g.add(rotor);
-    for (const x of [-1, 1]) g.add(box(0.1, 0.1, 3.2, mat(0x1c1c1c), x, -1.4, 0.2), box(0.08, 0.6, 0.08, mat(0x1c1c1c), x, -1.1, 1), box(0.08, 0.6, 0.08, mat(0x1c1c1c), x, -1.1, -0.6));
-    for (const x of [-1.6, 1.6]) g.add(box(0.5, 0.4, 1.4, mat(0x2a2c2e), x, -0.4, 0.4));
-    g.userData = { rotor };
+    for (const sx of [-1, 1]) { g.add(box(0.08, 0.9, 0.08, dk, sx * 0.75, -1.2, 1.0)); const w = cyl(0.3, 0.3, 0.2, 10, mat(0x161616), sx * 0.85, -1.6, 1.0); w.rotation.z = Math.PI / 2; g.add(w); }
+    { const w = cyl(0.2, 0.2, 0.15, 8, mat(0x161616), 0, -0.6, -6.6); w.rotation.z = Math.PI / 2; g.add(w); g.add(box(0.06, 0.6, 0.06, dk, 0, -0.3, -6.6)); }
+    g.userData = { rotor, tail: tr };
     return g;
   };
   FL.droneModel = () => {
@@ -241,14 +340,26 @@
         { const f = box(1.8, 1.1, 0.05, mat(0xb82020), -1.05, 14.0, -1); g.add(f); g.userData.flag = f; }
         cap(12.6, 9.6, 7.5); cap(6.5, 5.5, 10.75); r = 8.5; h = 11; hp = 40; break;
       case 'tower': {
-        const wm = FL.wallMat(theme, 1, 1);
-        for (const x of [-1.2, 1.2]) for (const z of [-1.2, 1.2]) g.add(box(0.28, 6, 0.28, mat(0x4a3c2c), x, 3, z));
-        for (const y of [1.6, 3.6]) { g.add(box(2.6, 0.14, 0.14, mat(0x4a3c2c), 0, y, -1.2), box(2.6, 0.14, 0.14, mat(0x4a3c2c), 0, y, 1.2), box(0.14, 0.14, 2.6, mat(0x4a3c2c), -1.2, y, 0), box(0.14, 0.14, 2.6, mat(0x4a3c2c), 1.2, y, 0)); }
-        g.add(box(3.4, 0.25, 3.4, mat(0x4a3c2c), 0, 6.1, 0), box(3.2, 1.1, 3.2, wm, 0, 6.8, 0));
-        for (const x of [-1.5, 1.5]) for (const z of [-1.5, 1.5]) g.add(box(0.16, 1.4, 0.16, mat(0x4a3c2c), x, 8.0, z));
-        const roof = cyl(0, 2.8, 1.3, 4, roofMat(theme), 0, 9.3, 0); roof.rotation.y = Math.PI / 4; g.add(roof);
-        g.add(ball(0.3, G(0xfff2b0), 0, 7.7, -1.5, 8, 6));
-        r = 2.4; h = 9.8; hp = 12; break;
+        if (FL.THEMES[theme].style === 'wood') {
+          const wm = FL.wallMat(theme, 1, 1), wd = mat(0x4a3c2c);
+          for (const x of [-1.2, 1.2]) for (const z of [-1.2, 1.2]) g.add(box(0.28, 6, 0.28, wd, x, 3, z));
+          for (const y of [1.6, 3.6]) { g.add(box(2.6, 0.14, 0.14, wd, 0, y, -1.2), box(2.6, 0.14, 0.14, wd, 0, y, 1.2), box(0.14, 0.14, 2.6, wd, -1.2, y, 0), box(0.14, 0.14, 2.6, wd, 1.2, y, 0)); }
+          g.add(box(3.4, 0.25, 3.4, wd, 0, 6.1, 0), box(3.2, 1.1, 3.2, wm, 0, 6.8, 0));
+          for (const x of [-1.5, 1.5]) for (const z of [-1.5, 1.5]) g.add(box(0.16, 1.4, 0.16, wd, x, 8.0, z));
+          g.add(box(3.8, 0.2, 3.8, roofMat(theme), 0, 8.8, 0));
+        } else {
+          // moderner Wachturm: Stahlgerüst, gepanzerte Kanzel, Flachdach mit Scheinwerfer
+          const stl = mat(0x4c5258), arm = mat(theme === 'wueste' ? 0x9a8c6c : snow ? 0xb4bcc2 : 0x5c645c);
+          for (const x of [-1.2, 1.2]) for (const z of [-1.2, 1.2]) g.add(box(0.2, 6, 0.2, stl, x, 3, z));
+          for (const y of [1.2, 3.0, 4.8]) { g.add(box(2.6, 0.1, 0.1, stl, 0, y, -1.2), box(2.6, 0.1, 0.1, stl, 0, y, 1.2), box(0.1, 0.1, 2.6, stl, -1.2, y, 0), box(0.1, 0.1, 2.6, stl, 1.2, y, 0)); }
+          for (const z of [-1.2, 1.2]) { const d1 = box(0.08, 3.4, 0.08, stl, 0, 3, z); d1.rotation.z = 0.78; g.add(d1); }
+          g.add(box(3.6, 0.2, 3.6, stl, 0, 6.1, 0), box(3.2, 0.9, 3.2, arm, 0, 6.65, 0), box(3.25, 0.55, 3.25, mat(0x10161c, { shiny: 80 }), 0, 7.38, 0), box(3.2, 0.3, 3.2, arm, 0, 7.8, 0));
+          g.add(box(3.8, 0.16, 3.8, stl, 0, 8.03, 0), cyl(0.02, 0.02, 2.2, 4, stl, 1.3, 9.2, 1.3), box(0.5, 0.4, 0.4, stl, -1.0, 8.35, -1.3));
+          g.add(box(2.0, 3.0, 0.1, con(1, 1), 0, 1.5, -1.5));
+          cap(3.8, 3.8, 8.2);
+        }
+        g.add(ball(0.3, G(0xfff2b0), snow || FL.THEMES[theme].style !== 'wood' ? -1.0 : 0, FL.THEMES[theme].style === 'wood' ? 7.7 : 8.35, -1.55, 8, 6));
+        r = 2.4; h = 9; hp = 12; break;
       }
       case 'depot': {
         const m = mat(0xffffff, { map: FL.tex.metal(snow ? '#d8dee2' : '#c9cdc8'), rx: 6, ry: 1 });
@@ -271,7 +382,13 @@
         const len = opt.len || 8;
         g.add(box(len, 3.2, 1.0, FL.wallMat(theme, len / 4, 1), 0, 1.6, 0));
         if (FL.THEMES[theme].style === 'wood') { for (let x = -len / 2 + 0.3; x < len / 2; x += 0.6) g.add(cyl(0, 0.3, 0.6, 5, mat(0x6a4e30), x, 3.5, 0)); }
-        else { for (let x = -len / 2 + 0.6; x < len / 2; x += 1.6) g.add(box(0.9, 0.6, 1.1, FL.wallMat(theme, 0.3, 0.2), x, 3.5, 0)); cap(len, 1.1, 3.9); }
+        else {
+          // Betonmauer mit Stacheldraht statt Zinnen
+          g.add(box(len, 0.16, 1.3, mat(0x55595c), 0, 3.28, 0));
+          for (let x = -len / 2 + 0.4; x < len / 2; x += 2) { const p1 = box(0.08, 0.9, 0.08, mat(0x3a3e42), x, 3.75, 0); p1.rotation.x = -0.3; g.add(p1); }
+          for (const y of [3.75, 4.05]) { const wr = box(len, 0.035, 0.035, mat(0x9a9ea2), 0, y, -0.12 - (y - 3.75) * 0.3); wr.castShadow = false; g.add(wr); }
+          cap(len, 1.3, 3.45);
+        }
         r = len / 2; h = 3.6; hp = 10; break;
       }
       case 'gate': {
@@ -339,22 +456,33 @@
         g.add(box(0.5, 18, 0.5, mat(0x8a8e90), 0, 9, 0), box(2.4, 1.6, 2.4, con(1, 1), 0, 0.8, 0), ball(0.3, G(0xff3020), 0, 18.3, 0, 6, 5));
         for (const y of [6, 11, 15]) g.add(box(2.2, 0.1, 0.1, mat(0x8a8e90), 0, y, 0), box(0.1, 0.1, 2.2, mat(0x8a8e90), 0, y, 0));
         r = 1.6; h = 18; hp = 6; break;
-      case 'cannon': {       // eigener Kanonenturm, Stufe 1 bis 5
-        const lvl = opt.level || 1, dark = lvl >= 4;
-        const bm = mat(0xffffff, { map: FL.tex.brick(dark ? '#4d5560' : '#8f8a7c'), rx: 1, ry: 1.2 });
-        g.add(box(2.8, 3.6, 2.8, bm, 0, 1.8, 0), box(3.2, 0.3, 3.2, mat(dark ? 0x30363e : 0x6a665c), 0, 3.75, 0));
-        for (const x of [-1.25, 0, 1.25]) for (const z of [-1.25, 1.25]) g.add(box(0.6, 0.5, 0.6, bm, x, 4.15, z));
-        g.add(box(2.0, 0.14, 0.05, G(CYAN), 0, 2.6, -1.42));
-        const head = new THREE.Group(); head.position.y = 4.0;
-        if (lvl <= 2) { const b = cyl(0.22, 0.28, 2.6, 8, mat(GUN), 0, 0.9, 0.8); b.rotation.x = 0.9; head.add(b); }
-        else if (lvl === 3) { for (const x of [-0.4, 0.4]) { const b = cyl(0.2, 0.25, 2.8, 8, mat(GUN), x, 0.9, 0.8); b.rotation.x = 0.9; head.add(b); } }
-        else {
-          const n = lvl === 4 ? 2 : 3, pod = new THREE.Group();
-          pod.add(box(0.6 * n + 0.3, 0.8, 1.8, mat(lvl === 4 ? 0x5a2c2c : 0x2c2c48), 0, 0, 0));
-          for (let i = 0; i < n; i++) { const rk = cyl(0.02, 0.2, 0.5, 6, mat(0xe8e8e8), (i - (n - 1) / 2) * 0.6, 0, 1.0); rk.rotation.x = Math.PI / 2; pod.add(rk); }
-          pod.position.y = 0.9; pod.rotation.x = -0.7; head.add(pod);
+      case 'cannon': {       // eigener Geschützturm einer modernen Basis, Stufe 1 bis 5
+        const lvl = opt.level || 1, heavy = lvl >= 4;
+        const arm = heavy ? mat(0x3c444c, { shiny: 20 }) : FL.PAL.ally.body, dk = mat(heavy ? 0x262c32 : 0x33402a), stl = mat(0x4c5258);
+        g.add(cyl(2.5, 2.8, 0.5, 8, con(3, 0.3), 0, 0.25, 0));
+        // Schutzwall aus Sandsäcken und Betonblöcken
+        g.add(cyl(2.3, 2.5, 0.9, 10, mat(0xffffff, { map: FL.tex.sandbag(), rx: 6, ry: 1 }), 0, 0.9, 0), cyl(1.9, 1.9, 0.92, 10, mat(0x2a2620), 0, 0.9, 0));
+        for (const a of [0.8, 2.35, 3.95, 5.5]) g.add(box(1.3, 1.3, 0.45, con(0.5, 0.5), Math.sin(a) * 2.75, 0.65, Math.cos(a) * 2.75).rotateY(a));
+        g.add(cyl(0.75, 0.95, 1.6, 8, stl, 0, 1.3, 0), cyl(1.25, 1.25, 0.2, 10, dk, 0, 2.15, 0));
+        const head = new THREE.Group(); head.position.y = 2.25;
+        head.add(box(2.0, 0.95, 2.2, arm, 0, 0.5, -0.15));
+        for (const sx of [-1, 1]) { const c = box(0.7, 0.9, 1.1, arm, sx * 0.72, 0.5, 1.0); c.rotation.y = sx * 0.5; head.add(c); }
+        head.add(box(1.7, 0.1, 1.9, dk, 0, 1.02, -0.2), box(0.5, 0.35, 0.5, dk, 0.6, 1.2, -0.6), ball(0.2, mat(0x10161c, { shiny: 90 }), 0.6, 1.5, -0.6, 8, 6));
+        head.add(cyl(0.015, 0.015, 1.8, 4, stl, -0.8, 1.9, -0.9), box(1.2, 0.08, 0.04, G(CYAN), 0, 0.5, -1.27));
+        if (lvl <= 3) {
+          for (const x of (lvl === 3 ? [-0.36, 0.36] : [0])) { const b = barrelOf({ dark: dk }, lvl === 1 ? 3.0 : 3.6, lvl === 1 ? 0.11 : 0.13); b.position.set(x, 0.6, 1.0); b.rotation.x = -0.38; head.add(b); }
+          head.add(box(lvl === 3 ? 1.3 : 0.7, 0.6, 0.5, dk, 0, 0.6, 1.15));
+        } else {
+          const n = lvl === 4 ? 2 : 3;
+          for (const sx of [-1, 1]) {
+            const pod = new THREE.Group();
+            pod.add(box(0.75, 0.3 + 0.36 * n, 1.9, mat(heavy && lvl === 5 ? 0x2c3448 : 0x4a5240), 0, 0, 0));
+            for (let i = 0; i < n; i++) for (const dx of [-0.17, 0.17]) { const rk = cyl(0.12, 0.12, 0.08, 8, mat(i % 2 ? 0xc03020 : 0xe8e8e8), dx, (i - (n - 1) / 2) * 0.36, 0.97); rk.rotation.x = Math.PI / 2; pod.add(rk); }
+            pod.position.set(sx * 1.45, 0.75, 0.1); pod.rotation.x = -0.45; head.add(pod);
+          }
+          const dish = box(0.9, 0.6, 0.08, stl, 0, 1.5, 0.3); dish.rotation.x = -0.3; head.add(dish);
         }
-        g.add(head); g.userData.head = head; r = 2; h = 5; hp = 99; break;
+        g.add(head); g.userData.head = head; r = 2.8; h = 4.4; hp = 99; break;
       }
     }
     g.userData.r = r; g.userData.h = h; g.userData.hp = hp; g.userData.kind = kind;

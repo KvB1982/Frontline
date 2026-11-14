@@ -11,16 +11,17 @@ FL.WEAPONS = [
   { name: 'Mega-Kanone',    rate: 0.07, dmg: 3, shots: 3, spread: 0.5,  color: 0xff9628, rocket: 5 }
 ];
 FL.TOWER_LEVELS = [
-  { name: 'Kanonenturm',       count: 1, reload: 3.0, kind: 'shell',  n: 1, dmg: 4, radius: 3.0 },
-  { name: 'Zwei Kanonentürme', count: 2, reload: 2.6, kind: 'shell',  n: 1, dmg: 4, radius: 3.0 },
-  { name: 'Doppelkanonen',     count: 2, reload: 2.2, kind: 'shell',  n: 2, dmg: 5, radius: 3.4 },
-  { name: 'Raketentürme',      count: 2, reload: 1.9, kind: 'rocket', n: 2, dmg: 6, radius: 3.8 },
-  { name: 'Mega-Türme',        count: 2, reload: 1.4, kind: 'rocket', n: 3, dmg: 8, radius: 4.4 }
+  { name: 'Geschütz',          count: 1, reload: 3.0, kind: 'shell',  n: 1, dmg: 4, radius: 3.0 },
+  { name: 'Zwei Geschütze',    count: 2, reload: 2.6, kind: 'shell',  n: 1, dmg: 4, radius: 3.0 },
+  { name: 'Zwillingsgeschütze', count: 2, reload: 2.2, kind: 'shell',  n: 2, dmg: 5, radius: 3.4 },
+  { name: 'Raketenbatterien',  count: 2, reload: 1.9, kind: 'rocket', n: 2, dmg: 6, radius: 3.8 },
+  { name: 'Mega-Batterien',    count: 2, reload: 1.4, kind: 'rocket', n: 3, dmg: 8, radius: 4.4 }
 ];
 FL.SPECIALS = [
   { id: 'drones', key: '1', name: 'Drohnen', reload: 22 },
   { id: 'heli',   key: '2', name: 'Kampfhubschrauber', reload: 35 },
-  { id: 'bomber', key: '3', name: 'Kampfbomber', reload: 50 }
+  { id: 'bomber', key: '3', name: 'Kampfbomber', reload: 50 },
+  { id: 'arty',   key: '4', name: 'Artillerie', reload: 40 }
 ];
 // Gegner: Lebenspunkte, Tempo, Punkte, Waffe, Schüsse pro Sekunde
 FL.ENEMIES = {
@@ -49,12 +50,13 @@ FL.ITEMS = [
   { id: 'allies', group: 'Ausrüstung', name: 'Kameraden', prices: [100, 180, 280, 400, 550, 750], desc: 'Soldaten, die neben dir kämpfen und selbst zielen.' },
   { id: 'lives', group: 'Ausrüstung', name: 'Extra-Leben', prices: [300, 600], desc: 'Ein Leben mehr pro Einsatz.' },
   { id: 'medkit', group: 'Ausrüstung', name: 'Sanitäter-Kit', prices: [200], desc: 'Du hilfst getroffenen Kameraden doppelt so schnell wieder auf.' },
-  { id: 'drones', group: 'Unterstützung', name: 'Drohnen', prices: [250, 400], desc: 'Taste 1: fünf Drohnen suchen sich je ein Ziel. Stufe 2 lädt schneller.' },
-  { id: 'heli', group: 'Unterstützung', name: 'Kampfhubschrauber', prices: [450, 600], desc: 'Taste 2: fliegt über das Feld und feuert Raketen. Stufe 2 lädt schneller.' },
-  { id: 'bomber', group: 'Unterstützung', name: 'Kampfbomber', prices: [700, 800], desc: 'Taste 3: Bombenteppich über das ganze Feld. Stufe 2 lädt schneller.' },
+  { id: 'drones', group: 'Unterstützung', name: 'Drohnen', prices: [250, 400], desc: 'Taste 1: fünf Drohnen suchen sich je ein Ziel. Stufe 2 lädt schneller. Geht auch im Panzer-Einsatz.' },
+  { id: 'heli', group: 'Unterstützung', name: 'Kampfhubschrauber', prices: [450, 600], desc: 'Taste 2: fliegt über das Feld und feuert Raketen. Stufe 2 lädt schneller. Im Panzer-Einsatz begleitet er dich eine Weile.' },
+  { id: 'bomber', group: 'Unterstützung', name: 'Kampfbomber', prices: [700, 800], desc: 'Taste 3: Bombenteppich über das ganze Feld. Stufe 2 lädt schneller. Im Panzer-Einsatz bombardiert er dein Ziel.' },
+  { id: 'arty', group: 'Unterstützung', name: 'Artillerie', prices: [500, 700], desc: 'Taste 4: Die Artillerie schießt von weit hinten eine Salve Granaten auf die Gegner. Stufe 2 lädt schneller. Im Panzer-Einsatz trifft die Salve dein Ziel.' },
   { id: 'tank', group: 'Unterstützung', name: 'Begleit-Panzer', prices: [600], desc: 'Ein eigener Panzer kämpft im Bodenkampf mit.' },
   { id: 'werfer', group: 'Unterstützung', name: 'Raketenwerfer', prices: [750], desc: 'Ein Raketenwerfer-Fahrzeug unterstützt dich im Bodenkampf.' },
-  { id: 'towers', group: 'Basis', name: 'Kanonentürme', prices: [200, 350, 550, 800, 1100], desc: 'Taste X feuert die Türme ab. Jede Stufe macht sie stärker.', levels: ['keine'].concat(FL.TOWER_LEVELS.map(t => t.name)) },
+  { id: 'towers', group: 'Basis', name: 'Geschütze', prices: [200, 350, 550, 800, 1100], desc: 'Taste X feuert. Bei der Verteidigung stehen sie als Geschütztürme in deiner Basis, beim Angriff fahren sie als Geschützwagen mit. Jede Stufe macht sie stärker.', levels: ['keine'].concat(FL.TOWER_LEVELS.map(t => t.name)) },
   { id: 'mgnest', group: 'Basis', name: 'MG-Nester', prices: [250, 450], desc: 'Schießen bei der Verteidigung von selbst auf Gegner.' },
   { id: 'bunker', group: 'Basis', name: 'Bunker', prices: [200, 350, 500], desc: 'Deine Basis hält bei der Verteidigung mehr Durchbrüche aus.' },
   { id: 'medic', group: 'Basis', name: 'Sanitätszelt', prices: [300], desc: 'Bei der Verteidigung stehen getroffene Kameraden nach kurzer Zeit von selbst wieder auf.' },

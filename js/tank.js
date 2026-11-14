@@ -20,6 +20,7 @@
       this.maxV = 10 + 1.6 * lo.t_engine;
       this.turnRate = 1.05 + 0.15 * lo.t_engine;
       this.cd = 0; this.shake = 0; this.dustT = 0; this.warnT = 0; this.recoil = 0;
+      this.supCd = [0, 0, 0, 0]; this.sup = []; this.barrage = null; this.aimX = 0; this.aimZ = 0;
       this.shells = []; this.eshells = []; this.structures = []; this.tanks = []; this.spinners = []; this.burning = []; this.crates = []; this.solid = [];
       this.buildWorld();
       this.tank = FL.tankModel(FL.PAL.ally);
@@ -114,9 +115,10 @@
     buildHud() {
       FL.hud.clear();
       this.hTL = FL.hud.box('hud-tl'); this.hTC = FL.hud.box('hud-tc'); this.hTR = FL.hud.box('hud-tr');
+      this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = '↑ ↓ fahren · ← → lenken · A D Turm drehen · W Turm nach vorn · Leertaste Kanone · Schraubenschlüssel-Kisten reparieren · P Pause';
+      hint.innerHTML = '↑ ↓ fahren · ← → lenken · A D Turm drehen · W Turm nach vorn · Leertaste Kanone · 1 2 3 4 Unterstützung · Schraubenschlüssel-Kisten reparieren · P Pause';
     }
 
     // ---------------------------------------------------------------- Treffer
@@ -182,6 +184,124 @@
       for (const s of this.structures) if (s.alive) check(s, s.r * 0.6);
       return best;
     }
+    // ---------------------------------------------------------------- Unterstützung durch andere Truppen
+    // 1 Drohnen, 2 Kampfhubschrauber, 3 Kampfbomber, 4 Artillerie (wie im Bodenkampf, im Laden gekauft)
+    blast(x, z, radius, dmg, y) {
+      this.fx.explosion(x, y || 0.6, z, radius / 4);
+      FL.audio.play('boom'); this.shake = Math.max(this.shake, 0.15);
+      for (const e of this.tanks) if (!e.dead && Math.hypot(e.x - x, e.z - z) < radius + e.r) this.hitTank(e, dmg);
+      for (const s of this.structures) if (s.alive && Math.hypot(s.x - x, s.z - z) < radius + s.r * 0.7) this.hitStructure(s, dmg);
+    }
+    // nächstes lohnendes Ziel: erst Panzer und Geschütze, dann die markierten Gebäude
+    supTarget(x, z, range, taken) {
+      let best = null, bs = 1e9;
+      const check = (o, bonus) => { if (taken && taken.has(o)) return; const d = Math.hypot(o.x - x, o.z - z); if (d < range && d + bonus < bs) { bs = d + bonus; best = o; } };
+      for (const e of this.tanks) if (!e.dead) check(e, 0);
+      for (const s of this.structures) if (s.alive && (s.gun || s.primary)) check(s, s.gun ? 20 : 60);
+      return best;
+    }
+    support(i) {
+      const sp = FL.SPECIALS[i], lvl = this.lo[sp.id], st = this.stage;
+      if (!lvl) { FL.hud.msg(sp.name + ' hast du noch nicht gekauft', C.muted, true); return; }
+      if (this.supCd[i] > 0 || this.lost || this.endT >= 0) return;
+      this.supCd[i] = sp.reload * 1.5 * (lvl > 1 ? 0.7 : 1);
+      FL.audio.play('up');
+      const ath = wrap(this.th + this.tu), sin = Math.sin(ath), cos = Math.cos(ath);
+      if (i === 0) {
+        for (let k = 0; k < 5; k++) { const mesh = FL.droneModel(); mesh.scale.setScalar(2.2); mesh.visible = false; st.add(mesh); this.sup.push({ kind: 'drone', x: this.x + (k - 2) * 1.5, y: 3.5, z: this.z, t: -k * 0.15, life: 14, target: null, mesh }); }
+        FL.hud.msg('Drohnen gestartet!', C.cyan, true);
+      } else if (i === 1) {
+        const mesh = FL.heliModel(); st.add(mesh);
+        this.sup.push({ kind: 'heli', x: this.x - sin * 90, y: 22, z: this.z - cos * 90, th: ath, t: 0, life: 18, fire: 1.5, mesh });
+        FL.hud.msg('Kampfhubschrauber begleitet dich!', C.cyan, true);
+      } else if (i === 2) {
+        const mesh = FL.jetModel(0x6a7682, 0x3a4450); mesh.rotation.y = ath; st.add(mesh);
+        this.sup.push({ kind: 'bomber', x: this.aimX - sin * 280, y: 32, z: this.aimZ - cos * 280, sin, cos, ax: this.aimX, az: this.aimZ, t: 0, life: 7, drop: 0, mesh });
+        FL.audio.play('jet'); FL.hud.msg('Kampfbomber im Anflug auf dein Ziel!', C.orange);
+      } else {
+        this.barrage = { n: 8, cd: 1.0, x: this.aimX, z: this.aimZ };
+        FL.audio.play('cannon'); FL.hud.msg('Artillerie feuert auf dein Ziel!', C.orange);
+      }
+    }
+    updateSupport(dt) {
+      const fx = this.fx, st = this.stage;
+      for (let i = 0; i < 4; i++) this.supCd[i] = Math.max(0, this.supCd[i] - dt);
+      if (this.barrage) {
+        const q = this.barrage; q.cd -= dt;
+        if (q.cd <= 0) {
+          q.cd = 0.36; q.n--;
+          const a = Math.random() * 6.283, d = Math.sqrt(Math.random()) * 13, tx = q.x + Math.sin(a) * d, tz = q.z + Math.cos(a) * d;
+          const mesh = FL.ball(0.5, FL.mat(0x1c1c1c), 0, 0, 0, 6, 5); st.add(mesh);
+          this.sup.push({ kind: 'shell', sx: tx - Math.sin(this.th) * 30, sz: tz - Math.cos(this.th) * 30, tx, tz, x: tx, y: 70, z: tz, t: 0, T: 1.3, life: 9, mesh });
+          if (q.n <= 0) this.barrage = null;
+        }
+      }
+      for (const a of this.sup) {
+        a.t += dt; a.life -= dt;
+        if (a.t < 0) continue;
+        a.mesh.visible = true;
+        if (a.kind === 'drone') {
+          if (!a.target || a.target.dead || a.target.alive === false) {
+            const taken = new Set(this.sup.filter(o => o !== a && o.kind === 'drone' && o.target).map(o => o.target));
+            a.target = this.supTarget(a.x, a.z, 280, taken) || this.supTarget(a.x, a.z, 280);
+          }
+          const tg = a.target;
+          const tx = tg ? tg.x : this.x + Math.sin(this.t * 2 + a.x) * 8, ty = tg ? 2 : 7, tz = tg ? tg.z : this.z + Math.cos(this.t * 2 + a.x) * 8;
+          const dx = tx - a.x, dy = ty - a.y, dz = tz - a.z, d = Math.hypot(dx, dy, dz) || 1, step = 38 * dt;
+          a.x += dx / d * Math.min(step, d); a.y += dy / d * Math.min(step, d); a.z += dz / d * Math.min(step, d);
+          a.mesh.rotation.y = Math.atan2(dx, dz);
+          if (tg && d < 2 + (tg.r || 0) * 0.5) { a.life = 0; this.blast(a.x, a.z, 6, 8, a.y); }
+        } else if (a.kind === 'heli') {
+          const ath = this.th + this.tu, leaving = a.life < 3;
+          const wx = leaving ? a.x + Math.sin(a.th) * 100 : this.x + Math.sin(ath) * 28, wz = leaving ? a.z + Math.cos(a.th) * 100 : this.z + Math.cos(ath) * 28;
+          const dx = wx - a.x, dz = wz - a.z, d = Math.hypot(dx, dz) || 1, step = Math.min(d, (leaving ? 40 : 26) * dt);
+          a.x += dx / d * step; a.z += dz / d * step; a.y = FL.lerp(a.y, leaving ? 40 : 15, dt * 0.8);
+          const tg = leaving ? null : this.supTarget(a.x, a.z, 190);
+          const face = tg ? Math.atan2(tg.x - a.x, tg.z - a.z) : d > 3 ? Math.atan2(dx, dz) : a.th;
+          a.th = wrap(a.th + FL.clamp(wrap(face - a.th), -2 * dt, 2 * dt));
+          a.mesh.rotation.set(0.12, a.th, 0);
+          a.mesh.userData.rotor.rotation.y += dt * 30; a.mesh.userData.tail.rotation.x += dt * 40;
+          a.fire -= dt;
+          if (tg && a.fire <= 0) {
+            a.fire = 0.75;
+            const mesh = FL.rocketModel(); mesh.scale.setScalar(2); st.add(mesh);
+            this.sup.push({ kind: 'rocket', x: a.x, y: a.y - 1.2, z: a.z, target: tg, t: 0, life: 6, mesh });
+            FL.audio.play('laser');
+          }
+        } else if (a.kind === 'rocket') {
+          const tg = a.target, ty = Math.min((tg.h || 3) * 0.4, 3);
+          const dx = tg.x - a.x, dy = ty - a.y, dz = tg.z - a.z, d = Math.hypot(dx, dy, dz) || 1, step = 85 * dt;
+          a.x += dx / d * Math.min(step, d); a.y += dy / d * Math.min(step, d); a.z += dz / d * Math.min(step, d);
+          a.mesh.lookAt(tg.x, ty, tg.z);
+          if (Math.random() < 0.7) fx.puff('white', a.x, a.y, a.z, 1.2, 0.5, 0, 0.4, 0, 1.6);
+          if (d < step + 1.5) { a.life = 0; this.blast(a.x, a.z, 5, 7, a.y); }
+        } else if (a.kind === 'bomber') {
+          a.x += a.sin * 95 * dt; a.z += a.cos * 95 * dt; a.drop -= dt;
+          const along = (a.x - a.ax) * a.sin + (a.z - a.az) * a.cos;
+          // etwas früher auslösen, weil die Bomben noch ein Stück weiterfliegen
+          if (a.drop <= 0 && along > -75 && along < 15) {
+            a.drop = 0.11;
+            for (const side of [-5, 5]) {
+              const mesh = FL.bombModel(); mesh.scale.setScalar(2.4); st.add(mesh);
+              this.sup.push({ kind: 'bomb', x: a.x + a.cos * side, y: a.y - 1, z: a.z - a.sin * side, vx: a.sin * 38, vz: a.cos * 38, vy: 0, t: 0, life: 5, mesh });
+            }
+          }
+          a.mesh.rotation.y = Math.atan2(a.sin, a.cos);
+        } else if (a.kind === 'bomb') {
+          a.vy -= 40 * dt; a.x += a.vx * dt; a.y += a.vy * dt; a.z += a.vz * dt;
+          a.mesh.lookAt(a.x + a.vx, a.y + a.vy, a.z + a.vz);
+          if (a.y <= 0.5) { a.life = 0; this.blast(a.x, a.z, 8, 12); }
+        } else if (a.kind === 'shell') {
+          const k = Math.min(1, a.t / a.T);
+          a.x = FL.lerp(a.sx, a.tx, k); a.z = FL.lerp(a.sz, a.tz, k); a.y = 70 * (1 - k * k);
+          if (k >= 1) { a.life = 0; this.blast(a.x, a.z, 7, 9); }
+        }
+        a.mesh.position.set(a.x, a.y, a.z);
+      }
+      for (const a of this.sup) if (a.life <= 0) { st.scene.remove(a.mesh); if (a.kind === 'drone' && a.t > 13) fx.puff('white', a.x, a.y, a.z, 2, 0.5, 0, 1, 0, 1.5); }
+      this.sup = this.sup.filter(a => a.life > 0);
+    }
+
     // Hindernisse: Gebäude und Bäume schieben den Panzer zur Seite
     pushOut(o, rad) {
       for (const s of this.solid) {
@@ -229,6 +349,7 @@
       let ax = this.x + Math.sin(ath) * 70, az = this.z + Math.cos(ath) * 70, ay = 1.9;
       if (lock) { ax = lock.x; az = lock.z; ay = lock.h ? Math.min(lock.h * 0.5, 3) : 1.8; }
       this.aim.position.set(ax, ay, az);
+      this.aimX = ax; this.aimZ = az;
       const ad = Math.hypot(ax - this.x, az - this.z);
       const as = FL.clamp(ad * 0.045, 1.6, 5) * (lock ? 1.25 : 1);
       this.aim.scale.set(as, as, 1);
@@ -258,6 +379,7 @@
       this.shells = this.shells.filter(s => !s.gone);
 
       this.updateEnemies(dt, active);
+      this.updateSupport(dt);
 
       // Reparaturkisten
       for (const c of this.crates) {
@@ -353,14 +475,26 @@
       const next = this.structures.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
       if (next) tc += `<div>Nächstes Ziel ${FL.arrowHtml(FL.bearing(this.x, this.z, ath, next.x, next.z), Math.hypot(next.x - this.x, next.z - this.z))}</div>`;
       H.set(this.hTC, tc);
+      let tr = '';
+      FL.SPECIALS.forEach((sp, i) => {
+        const lvl = this.lo[sp.id];
+        if (!lvl) return;
+        const total = sp.reload * 1.5 * (lvl > 1 ? 0.7 : 1), ready = this.supCd[i] <= 0;
+        tr += `<div class="slot ${ready ? 'ready' : ''}"><b>${sp.key}</b>${sp.name}${ready ? '' : `<i style="width:${Math.round((1 - this.supCd[i] / total) * 100)}%"></i>`}</div><br>`;
+      });
+      H.set(this.hInfo, tr);
       const items = [];
+      for (const a of this.sup) if (a.kind === 'heli' || a.kind === 'bomber') items.push({ x: a.x, z: a.z, color: '#46dcff', size: 3.5 });
       for (const s of this.structures) if (s.alive) items.push({ x: s.x, z: s.z, color: s.primary ? '#ff5a3c' : s.gun ? '#ffc43c' : '#6f7f8c', size: s.primary ? 4 : 2.5, far: s.primary });
       for (const e of this.tanks) items.push({ x: e.x, z: e.z, color: '#ff40c0', size: 3.5 });
       for (const c of this.crates) items.push({ x: c.x, z: c.z, color: '#5fd07a', size: 3 });
       FL.drawMinimap(this.map, this.x, this.z, ath, 190, items);
     }
 
-    onKey() {}
+    onKey(code) {
+      const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(code.replace('Numpad', 'Digit'));
+      if (i >= 0) this.support(i);
+    }
     destroy() { this.stage.dispose(); }
   };
 })();

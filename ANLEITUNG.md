@@ -102,8 +102,8 @@ Es gibt 12 Einsätze, die nacheinander frei werden: Basen angreifen und erobern,
 
 - **Waffen:** von der Pistole bis zur Mega-Kanone
 - **Ausrüstung:** Schutzweste, Kameraden, Extra-Leben, Sanitäter-Kit
-- **Unterstützung:** Drohnen, Kampfhubschrauber, Kampfbomber, Begleit-Panzer, Raketenwerfer
-- **Basis:** Kanonentürme, MG-Nester, Bunker, Sanitätszelt, Radar
+- **Unterstützung:** Drohnen, Kampfhubschrauber, Kampfbomber, Artillerie, Begleit-Panzer, Raketenwerfer
+- **Basis:** Geschütze (in der eigenen Basis feste Geschütztürme, beim Angriff fahren sie als Geschützwagen mit), MG-Nester, Bunker, Sanitätszelt, Radar
 - **Flugzeug:** Panzerung, Bordkanone, Bomben, Triebwerk, Raketen
 - **Panzer:** Panzerung, Kanone, Ladeautomatik, Motor
 
@@ -117,15 +117,16 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 
 | Einsatz | Tasten |
 | --- | --- |
-| Bodenkampf | ← → bewegen, Leertaste schießen, ↓ Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, X Kanonentürme abfeuern, T Türme an/aus, 1 2 3 Drohnen, Hubschrauber, Bomber, V vorrücken |
+| Bodenkampf | ← → bewegen, Leertaste schießen, ↓ Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, X Geschütze abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie, V vorrücken |
 | Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen |
-| Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone |
+| Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone, 1 2 3 4 Unterstützung anfordern: Drohnen, Hubschrauber, Bomber, Artillerie |
 | Immer | P oder Esc Pause, M Ton an/aus |
 
 ## Tipps
 
 - Ein Flug-Einsatz beginnt in deiner Flugbasis: Bei Alarm läufst du zum Flugzeug (blauer Kreis), rollst zur Startbahn (↑ Gas, ↓ bremsen, ← → lenken), hältst ↑ für Vollgas und ziehst bei genug Tempo mit ↓ hoch. Sind alle Ziele zerstört, fliegst du zurück und in Richtung Landebahn durch einen der blauen Ringe. Dann landet die Landehilfe das Flugzeug. Danach rollst du zum Parkplatz und gehst ins Basisgebäude. Erst dann ist der Einsatz gewonnen.
 - Im Flugzeug zeigt der gelbe Kreis am Boden, wo die Bombe einschlägt. Wirf sie ab, wenn der Kreis über dem rot markierten Ziel liegt. Gegen die Flak hilft: Kurven fliegen und die Höhe wechseln. Bei jedem Abwurf zeigt die Bomben-Kamera links im Bild, wie die Bombe fällt und ob sie trifft.
+- Im Panzer kannst du Unterstützung anfordern, wenn du sie im Laden gekauft hast: Drohnen suchen sich Ziele in der Nähe, der Kampfhubschrauber begleitet dich eine Weile, Kampfbomber und Artillerie treffen die Stelle, auf die deine Kanone gerade zielt.
 - Im Panzer rastet das rote Fadenkreuz auf ein Ziel ein, wenn du ungefähr in die Richtung zielst. Bleib in Bewegung, dann wirst du seltener getroffen. Kisten mit Schraubenschlüssel reparieren den Panzer.
 - Vor der gegnerischen Basis zielt dein Soldat von selbst auf das nächste Gebäude, wenn kein Gegner vor ihm steht.
 - Wenn das Spiel ruckelt: im Hauptmenü bei „Grafik“ auf „schnell“ stellen.

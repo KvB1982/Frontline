@@ -205,7 +205,7 @@
     stepper(opts, 'Schwierigkeit', () => DIFFS[m.diff].name, d => { m.diff = FL.clamp(m.diff + d, 0, 2); });
     stepper(opts, 'Länge', () => m.kind === 'attack' ? m.sections + ' Abschnitte' : m.kind === 'defend' ? m.waves + ' Wellen' : 'fest',
       d => { if (m.kind === 'attack') m.sections = FL.clamp(m.sections + d, 1, 5); else if (m.kind === 'defend') m.waves = FL.clamp(m.waves + d, 1, 8); });
-    stepper(opts, 'Kanonentürme', () => m.towersOn ? 'an' : 'aus', () => { m.towersOn = !m.towersOn; });
+    stepper(opts, 'Geschütze', () => m.towersOn ? 'an' : 'aus', () => { m.towersOn = !m.towersOn; });
     const quick = FL.el('div', 'tabs', '', P.body); quick.style.marginTop = '14px';
     btn(quick, 'Alles auf Maximum', 'small', () => { for (const it of FL.ITEMS) m.up[it.id] = it.prices.length; refresh(); });
     btn(quick, 'Alles auf Anfang', 'small', () => { m.up = {}; refresh(); });

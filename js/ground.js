@@ -25,7 +25,7 @@
       this.lives = 4 + lo.lives;
       this.baseMax = this.baseHp = 8 + 4 * lo.bunker;
       this.fireCd = 0; this.shotCount = 0; this.towerCd = 0; this.muzzleT = 0;
-      this.specialCd = [0, 0, 0]; this.spawnCd = 2.5; this.invuln = 0; this.ducking = false;
+      this.specialCd = [0, 0, 0, 0]; this.barrage = null; this.spawnCd = 2.5; this.invuln = 0; this.ducking = false;
       this.enemies = []; this.bullets = []; this.ebullets = []; this.shells = []; this.aircraft = [];
       this.shake = 0; this.section = 0; this.scroll = 0; this.advancing = 0; this.secured = false;
       this.wave = 0; this.waveSpawned = 0; this.waveBreak = 0; this.waveSize = 0;
@@ -59,8 +59,11 @@
       if (lo.towers > 0) {
         const tw = FL.TOWER_LEVELS[lo.towers - 1];
         for (let i = 0; i < tw.count; i++) {
-          const m = FL.building('cannon', this.cfg.theme, { level: lo.towers });
-          m.position.set(i === 0 ? 10.8 : -10.8, 0, 7.5);
+          // In der eigenen Basis stehen feste Geschütztürme, beim Angriff fahren Geschützwagen mit.
+          const mobile = this.kind === 'attack';
+          const m = mobile ? FL.spgModel(FL.PAL.ally, lo.towers) : FL.building('cannon', this.cfg.theme, { level: lo.towers });
+          if (mobile) m.scale.setScalar(0.8);
+          m.position.set((i === 0 ? 1 : -1) * (mobile ? 12.4 : 10.8), 0, mobile ? 9.6 : 7.5);
           st.add(m); this.towerMeshes.push(m);
         }
       }
@@ -165,7 +168,7 @@
       this.hTL = FL.hud.box('hud-tl'); this.hTC = FL.hud.box('hud-tc'); this.hTR = FL.hud.box('hud-tr');
       this.hBC = FL.hud.box('hud-bc');
       const hint = FL.hud.box('hud-bl');
-      hint.innerHTML = '← → bewegen · Leertaste schießen · ↓ Deckung · E aufhelfen · X Türme · 1 2 3 Spezial' + (this.kind === 'attack' ? ' · V vorrücken' : '') + ' · P Pause';
+      hint.innerHTML = '← → bewegen · Leertaste schießen · ↓ Deckung · E aufhelfen · X Geschütze · 1 2 3 4 Unterstützung' + (this.kind === 'attack' ? ' · V vorrücken' : '') + ' · P Pause';
       this.hCover = FL.el('div', 'cover-note', 'IN DECKUNG', FL.hud.root);
     }
 
@@ -385,8 +388,8 @@
       FL.audio.play('cannon');
       const tg = this.enemies.filter(e => e.dying < 0 && e.z < Z_FAR - 1).sort((a, b) => a.z - b.z);
       this.towerMeshes.forEach((m, ti) => {
-        for (let k = 0; k < tw.n; k++) this.lob(m.position.x, 5.2, m.position.z, tg.length ? tg[(ti * tw.n + k) % tg.length] : null, tw.dmg, tw.radius, tw.kind, k * 0.12);
-        this.fx.spark(m.position.x, 5.6, m.position.z + 1, 3);
+        for (let k = 0; k < tw.n; k++) this.lob(m.position.x, 3.6, m.position.z, tg.length ? tg[(ti * tw.n + k) % tg.length] : null, tw.dmg, tw.radius, tw.kind, k * 0.12);
+        this.fx.spark(m.position.x, 3.8, m.position.z + 2, 3);
       });
     }
     useSpecial(i) {
@@ -402,6 +405,10 @@
         const mesh = FL.heliModel(); mesh.rotation.y = -Math.PI / 2; this.stage.add(mesh);
         this.aircraft.push({ kind: 'heli', x: 24, y: 10, z: 13, t: 0, life: 9, fire: 0, mesh });
         FL.hud.msg('Kampfhubschrauber im Anflug!', C.cyan, true);
+      } else if (i === 3) {
+        this.barrage = { n: 10, cd: 0.9 };
+        FL.audio.play('cannon');
+        FL.hud.msg('Artillerie feuert!', C.orange);
       } else {
         const mesh = FL.jetModel(0x6a7682, 0x3a4450); this.stage.add(mesh);
         this.aircraft.push({ kind: 'bomber', x: 0, y: 16, z: -40, t: 0, life: 5, drop: 0, mesh });
@@ -442,11 +449,12 @@
       else FL.hud.msg('Abschnitt ' + (this.section + 1) + ' von ' + this.nSec, C.gold);
     }
     onKey(code) {
-      if (code === 'KeyT') { this.towersOn = !this.towersOn; FL.save.towersOn = this.towersOn; FL.store(); FL.hud.msg('Kanonentürme ' + (this.towersOn ? 'AN' : 'AUS'), C.text, true); for (const m of this.towerMeshes) m.visible = this.towersOn; }
+      if (code === 'KeyT') { this.towersOn = !this.towersOn; FL.save.towersOn = this.towersOn; FL.store(); FL.hud.msg('Geschütze ' + (this.towersOn ? 'AN' : 'AUS'), C.text, true); for (const m of this.towerMeshes) m.visible = this.towersOn; }
       else if (code === 'KeyX' || code === 'KeyC') this.fireTowers();
       else if (code === 'Digit1' || code === 'Numpad1') this.useSpecial(0);
       else if (code === 'Digit2' || code === 'Numpad2') this.useSpecial(1);
       else if (code === 'Digit3' || code === 'Numpad3') this.useSpecial(2);
+      else if (code === 'Digit4' || code === 'Numpad4') this.useSpecial(3);
       else if (code === 'KeyV') this.advance();
     }
 
@@ -456,7 +464,17 @@
       const lo = this.lo, fx = this.fx;
       this.t += dt; this.secT += dt;
       this.fireCd -= dt; this.towerCd = Math.max(0, this.towerCd - dt);
-      for (let i = 0; i < 3; i++) this.specialCd[i] = Math.max(0, this.specialCd[i] - dt);
+      for (let i = 0; i < 4; i++) this.specialCd[i] = Math.max(0, this.specialCd[i] - dt);
+      // Artillerie-Salve: Die Granaten kommen nacheinander von weit hinten
+      if (this.barrage && !this.advancing) {
+        const q = this.barrage; q.cd -= dt;
+        if (q.cd <= 0) {
+          q.cd = 0.34; q.n--;
+          const pool = this.enemies.filter(e => e.dying < 0 && e.z < Z_FAR - 1);
+          this.lob(FL.rand(-9, 9), 36, -34, pool.length ? FL.pick(pool) : null, 12, 4.6, 'shell', 0, 1.5);
+          if (q.n <= 0) this.barrage = null;
+        }
+      }
       this.muzzleT -= dt; this.shake = Math.max(0, this.shake - dt); this.invuln = Math.max(0, this.invuln - dt);
 
       this.ducking = FL.down('ArrowDown', 'KeyS') && !this.advancing;
@@ -748,7 +766,7 @@
           if ((tg || st) && d < 0.9) { a.life = 0; this.explode(a.x, a.z, 3, 10, a.y); }
         } else if (a.kind === 'heli') {
           a.x -= 5.5 * dt; a.fire -= dt;
-          a.mesh.userData.rotor.rotation.y += dt * 30;
+          a.mesh.userData.rotor.rotation.y += dt * 30; a.mesh.userData.tail.rotation.x += dt * 40;
           a.mesh.rotation.z = 0.12;
           if (a.fire <= 0 && a.t > 1 && a.t < 7.5) { a.fire = 0.35; this.lob(a.x, a.y - 1, a.z, this.pickTarget(a.x), 9, 3.8, 'rocket'); }
         } else {
@@ -820,9 +838,9 @@
       let bc = '';
       if (lo.towers > 0) {
         const tw = FL.TOWER_LEVELS[lo.towers - 1];
-        if (!this.towersOn) bc = '<span class="muted">Kanonentürme AUS (T)</span>';
-        else if (this.towerCd <= 0) bc = `<b style="color:#46dcff">${tw.name} bereit (X)</b>`;
-        else bc = `Türme laden …${H.meter(1 - this.towerCd / tw.reload, 'cyan')}`;
+        if (!this.towersOn) bc = '<span class="muted">Geschütze AUS (T)</span>';
+        else if (this.towerCd <= 0) bc = `<b style="color:#46dcff">${this.kind === 'attack' ? 'Geschützwagen' : tw.name} bereit (X)</b>`;
+        else bc = `Geschütze laden …${H.meter(1 - this.towerCd / tw.reload, 'cyan')}`;
       }
       this.hBC.style.display = bc ? '' : 'none';
       H.set(this.hBC, bc);

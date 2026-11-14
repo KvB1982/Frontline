@@ -1,7 +1,7 @@
 'use strict';
 // Frontlinie 3 – merkt sich alle Dateien, damit das Spiel auch ohne Internet läuft.
 // Mit Internet wird immer zuerst die neueste Fassung geholt.
-const CACHE = 'frontlinie3-v4';
+const CACHE = 'frontlinie3-v5';
 const FILES = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'lib/three.min.js',
   'js/core.js', 'js/touch.js', 'js/world.js', 'js/models.js', 'js/career.js', 'js/ground.js', 'js/flight.js', 'js/tank.js', 'js/app.js',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
