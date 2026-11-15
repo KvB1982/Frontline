@@ -267,25 +267,30 @@
         if (lo.p_rocket) make(extra, 'Rakete', 'KeyR', 'small rk');
       } else if (kind === 'heli') {
         make(right, 'RAKETE', 'KeyR', 'wide bomb');
-        // Tippen oder Halten irgendwo auf dem freien Bildschirm feuert die Bordkanone, nach oben wischen schießt Raketen
+        // Freier Bildschirm: tippen oder still halten feuert die Bordkanone. Wischen und halten bewegt den Hubschrauber:
+        // hoch/runter = steigen/sinken, links/rechts = seitwärts schieben. Je weiter gewischt, desto schneller.
         const area = FL.el('div', 'tswipe', '');
         L.insertBefore(area, L.firstChild);
         let sw = null;
         const fireOff = () => { if (sw && sw.fire) { sw.fire = false; release('Space'); } };
-        area.addEventListener('pointerdown', e => { if (sw) return; const me = sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, done: false, fire: false, moved: 0 }; setTimeout(() => { if (sw === me && me.moved < 20 && !me.done) { me.fire = true; press('Space'); } }, 110); });
+        const axis = v => { const a = Math.abs(v); return a < 18 ? 0 : Math.sign(v) * Math.min(1, (a - 18) / 70); };
+        area.addEventListener('pointerdown', e => { if (sw) return; const me = sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, fire: false, moved: 0 }; setTimeout(() => { if (sw === me && me.moved < 18) { me.fire = true; press('Space'); } }, 140); });
         area.addEventListener('pointermove', e => {
-          if (!sw || e.pointerId !== sw.id || sw.done) return;
+          if (!sw || e.pointerId !== sw.id) return;
           const dy = e.clientY - sw.y0, dx = e.clientX - sw.x0;
           sw.moved = Math.max(sw.moved, Math.hypot(dx, dy));
-          if (dy < -55 && -dy > Math.abs(dx) * 1.2) { fireOff(); sw.done = true; press('KeyR'); setTimeout(() => release('KeyR'), 220); if (navigator.vibrate) navigator.vibrate(10); }
+          if (sw.moved >= 18) fireOff();
+          // die Hauptrichtung zählt voll, die andere erst bei deutlichem Schrägwischen
+          const ax = axis(dx), ay = axis(-dy);
+          T.heliX = Math.abs(dx) * 2 < Math.abs(dy) ? 0 : ax; T.heliY = Math.abs(dy) * 2 < Math.abs(dx) ? 0 : ay;
         });
         const endW = e => {
           if (!sw || e.pointerId !== sw.id) return;
-          if (sw.fire) fireOff(); else if (!sw.done && sw.moved < 20) { press('Space'); setTimeout(() => release('Space'), 260); }
-          sw = null;
+          if (sw.fire) fireOff(); else if (sw.moved < 18) { press('Space'); setTimeout(() => release('Space'), 260); }
+          sw = null; T.heliX = T.heliY = 0;
         };
         area.addEventListener('pointerup', endW); area.addEventListener('pointercancel', endW);
-        T.endSwipe = () => { fireOff(); sw = null; };
+        T.endSwipe = () => { fireOff(); sw = null; T.heliX = T.heliY = 0; };
         make(extra, '◀ Seite', 'KeyA', 'small'); make(extra, 'Seite ▶', 'KeyD', 'small');
         make(extra, '▲<br>Hoch', 'KeyW', 'small cyan'); make(extra, '▼<br>Runter', 'KeyS', 'small cyan');
       } else {
@@ -317,7 +322,7 @@
   T.hide = () => {
     T.pending = null;
     if (T.endSwipe) { T.endSwipe(); T.endSwipe = null; }
-    T.swipe = 0; T.turret = 0; T.elev = 0; T.fire = false;
+    T.swipe = 0; T.turret = 0; T.elev = 0; T.fire = false; T.heliX = 0; T.heliY = 0;
     FL.tilt.onChange = null; FL.tilt.dot = null;
     FL.stick.x = FL.stick.y = 0;
     FL.throttle.on = false; FL.throttle.v = 0;

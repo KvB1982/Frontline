@@ -213,10 +213,10 @@ Unter „Sondereinsätze“ gibt es den neuen Reiter „Hubschrauber“ mit vier
 | Was | Tastatur | iPad |
 |---|---|---|
 | vor und zurück, drehen | Pfeiltasten | Steuerknüppel links |
-| hoch und runter | W und S | Knöpfe „Hoch“ und „Runter“ |
-| seitwärts | A und D | Knöpfe „Seite“ |
+| hoch und runter | W und S | nach oben oder unten wischen und halten, oder Knöpfe „Hoch“ und „Runter“ |
+| seitwärts | A und D | nach links oder rechts wischen und halten, oder Knöpfe „Seite“ |
 | Bordkanone | Leertaste oder Mausklick | irgendwo tippen oder halten, Knopf FEUER |
-| Raketen | R | Knopf RAKETE oder nach oben wischen |
+| Raketen | R | Knopf RAKETE |
 
 - Hügel und Waldstücke sind Deckung: Wer dahinter schwebt, wird vom Gegner nicht gesehen. Oben links steht dann „In Deckung“.
 - Sieht dich ein Gegner, steht dort „Du wirst anvisiert!“ mit einem roten Balken. Ist der Balken voll, schießt er. Tauchst du vorher wieder ab oder weichst zur Seite aus, geht der Schuss daneben.

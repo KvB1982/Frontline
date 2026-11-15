@@ -28,7 +28,7 @@
       this.heli = FL.heliModel(); this.heli.rotation.order = 'YXZ'; st.add(this.heli);
       this.lockMark = FL.sprite(FL.tex.icon('ring'), 1, { depthTest: false }); this.lockMark.material.color.set(0x5fff7a); this.lockMark.visible = false; st.add(this.lockMark);
       this.buildHud();
-      FL.hud.msg('HUBSCHRAUBER STARTKLAR', C.gold); FL.hud.msg(FL.touch.active ? '„Hoch“ halten: abheben' : 'W halten: abheben', C.cyan, true);
+      FL.hud.msg('HUBSCHRAUBER STARTKLAR', C.gold); FL.hud.msg(FL.touch.active ? 'Nach oben wischen und halten: abheben' : 'W halten: abheben', C.cyan, true);
       this.place(0); this.updateCamera(1); this.updateHud();
     }
 
@@ -224,8 +224,9 @@
       // ---- steuern
       let fwd = FL.clamp((FL.down('ArrowUp') ? 1 : 0) - (FL.down('ArrowDown') ? 1 : 0) + FL.stick.y, -1, 1);
       let yaw = FL.clamp((FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) - FL.stick.x, -1, 1);
-      let side = (FL.down('KeyA') ? 1 : 0) - (FL.down('KeyD') ? 1 : 0);
-      let up = (FL.down('KeyW') ? 1 : 0) - (FL.down('KeyS') ? 1 : 0);
+      // iPad: Wischen auf dem freien Bildschirm schiebt den Hubschrauber seitwärts (rechts wischen = nach rechts) und lässt ihn steigen oder sinken
+      let side = FL.clamp((FL.down('KeyA') ? 1 : 0) - (FL.down('KeyD') ? 1 : 0) - (FL.touch.heliX || 0), -1, 1);
+      let up = FL.clamp((FL.down('KeyW') ? 1 : 0) - (FL.down('KeyS') ? 1 : 0) + (FL.touch.heliY || 0), -1, 1);
       if (!active) { fwd = yaw = side = 0; up = this.lost ? -0.7 : 0; }
       if (this.landed) {
         fwd = yaw = side = 0;
@@ -425,12 +426,12 @@
         (this.warn > 0.12 ? `<div style="color:#ef5a4c"><b>Du wirst anvisiert!</b></div>${H.meter(this.warn, 'red')}` : this.cover ? '<div style="color:#5fd07a"><b>In Deckung</b>: Der Gegner sieht dich nicht</div>' : ''));
       const me = this, to = (label, g) => `<div>${label} ${FL.arrowHtml(FL.bearing(me.x, me.z, me.th, g.x, g.z), Math.hypot(g.x - me.x, g.z - me.z))}</div>`;
       let tc;
-      if (this.rtb) tc = '<div style="color:#5fd07a"><b>Basis eingenommen</b></div>' + (this.endT >= 0 ? '' : to('Zum Landeplatz', { x: 0, z: 0 }) + (Math.hypot(this.x, this.z) < PAD_R ? '<div style="color:#46dcff"><b>Jetzt landen: ' + (FL.touch.active ? '„Runter“' : 'S') + ' halten</b></div>' : ''));
+      if (this.rtb) tc = '<div style="color:#5fd07a"><b>Basis eingenommen</b></div>' + (this.endT >= 0 ? '' : to('Zum Landeplatz', { x: 0, z: 0 }) + (Math.hypot(this.x, this.z) < PAD_R ? '<div style="color:#46dcff"><b>Jetzt landen: ' + (FL.touch.active ? 'nach unten wischen und' : 'S') + ' halten</b></div>' : ''));
       else {
         const f = this.fight.ownFrac();
         tc = `<div>Ziele: noch <b style="color:#ff8c3c">${this.left()}</b> von ${this.nPrimary}</div><div>Eigene Truppen</div>${H.meter(f, f < 0.35 ? 'red' : f < 0.65 ? 'gold' : 'cyan')}`;
         const next = this.targets.filter(s => s.alive && s.primary).sort((a, b) => Math.hypot(a.x - this.x, a.z - this.z) - Math.hypot(b.x - this.x, b.z - this.z))[0];
-        if (this.landed && this.endT < 0) tc += `<div style="color:#46dcff"><b>${FL.touch.active ? '„Hoch“' : 'W'} halten: abheben</b></div>`;
+        if (this.landed && this.endT < 0) tc += `<div style="color:#46dcff"><b>${FL.touch.active ? 'Nach oben wischen und' : 'W'} halten: abheben</b></div>`;
         else if (next) tc += this.fightOn ? to('Nächstes Ziel', next) : to('Einsatzort', this.site);
       }
       H.set(this.hTC, tc);
