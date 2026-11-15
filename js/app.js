@@ -90,13 +90,13 @@
     btn(box, 'Freies Spiel<small>Alles selbst einstellen und sofort spielen</small>', '', manualPage);
     const pair = FL.el('div', 'pair', '', box);
     const mute = btn(pair, '', '', () => { FL.save.muted = !FL.save.muted; FL.store(); label(); });
-    const label = () => { mute.innerHTML = `Ton: ${FL.save.muted ? 'aus' : 'an'}<small>Taste M</small>`; };
+    const label = () => { mute.innerHTML = `Ton: ${FL.save.muted ? 'aus' : 'an'}${FL.native ? '' : '<small>Taste M</small>'}`; };
     label();
     const GFX = ['auto', 'schön', 'mittel', 'schnell'];
     const gfx = btn(pair, '', '', () => { FL.save.gfx = GFX[(GFX.indexOf(FL.save.gfx || 'auto') + 1) % GFX.length]; FL.store(); applyGfx(); glabel(); });
     const glabel = () => { gfx.innerHTML = `Grafik: ${FL.save.gfx || 'auto'}<small>bei Ruckeln: „schnell“</small>`; };
     glabel();
-    FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
+    if (!FL.native) FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
     FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) und bohmerang (CC BY-NC-SA) · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
     FL.onKey = code => { if (code === 'KeyM') label(); };
   };
