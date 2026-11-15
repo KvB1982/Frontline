@@ -398,14 +398,16 @@
   });
 
   A.start = () => {
+    const boot = document.getElementById('boot'); if (boot) boot.remove();
     try { FL.initRenderer(); applyGfx(); }
     catch (e) {
       FL.el('div', 'menu', '<div class="title">FRONTLINIE 3</div><div class="panel result"><div class="big">Dieser Browser kann leider kein 3D (WebGL) anzeigen.</div><div class="muted">Bitte mit einem aktuellen Chrome, Edge oder Firefox öffnen.</div></div>', clearScreen());
       return;
     }
-    FL.ext.load();
     mainMenu();
     requestAnimationFrame(frame);
+    // Die großen 3D-Modelle erst laden, wenn das Menü schon zu sehen ist
+    requestAnimationFrame(() => setTimeout(() => FL.ext.load(), 400));
   };
   document.addEventListener('visibilitychange', () => { if (document.hidden && A.mode && !A.paused && !A.done) setPause(true); });
   // Damit das Spiel nach dem ersten Laden auch ohne Internet startet (nur über https, nicht per Doppelklick nötig)

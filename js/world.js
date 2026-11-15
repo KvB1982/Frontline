@@ -270,8 +270,11 @@ FL.tex = {
         gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,240,200,0.55)'); gr.addColorStop(1, 'rgba(255,220,160,0)');
         g.fillStyle = gr; g.fillRect(0, 0, s, s);
       } else if (kind === 'cloud') {
+        // Deckend auf Schwarz gemalt, die Helligkeit ist die Deckkraft (als alphaMap benutzt).
+        // Fast durchsichtige Canvas-Pixel werden auf iPad und iPhone sonst zu bunten Sprenkeln.
+        g.fillStyle = '#000'; g.fillRect(0, 0, s, s);
         for (let i = 0; i < 16; i++) {
-          const x = 14 + Math.random() * 68, y = 40 + Math.random() * 18, r = 10 + Math.random() * 14;
+          const x = 26 + Math.random() * 44, y = 40 + Math.random() * 18, r = 10 + Math.random() * 12;   // bleibt ganz im Bild, sonst sieht man Kanten
           const gr = g.createRadialGradient(x, y, 0, x, y, r);
           gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
           g.fillStyle = gr; g.fillRect(0, 0, s, s);
@@ -327,7 +330,7 @@ FL.ball = (r, mat, x, y, z, ws, hs) => {
 FL.sprite = (tex, size, opts) => {
   opts = opts || {};
   const s = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: tex, transparent: true, depthWrite: false, fog: opts.fog !== false,
+    map: opts.alpha ? null : tex, alphaMap: opts.alpha ? tex : null, transparent: true, depthWrite: false, fog: opts.fog !== false,
     blending: opts.add ? THREE.AdditiveBlending : THREE.NormalBlending, opacity: opts.opacity === undefined ? 1 : opts.opacity,
     depthTest: opts.depthTest !== false
   }));
@@ -372,9 +375,11 @@ FL.Stage = class {
     glow.scale.setScalar(0.5);
     // Wolken
     const rnd = FL.seeded(themeKey.length * 97 + 5);
+    const cloudTex = FL.tex.icon('cloud');
+    if (cloudTex.encoding !== THREE.LinearEncoding) { cloudTex.encoding = THREE.LinearEncoding; cloudTex.needsUpdate = true; }
     for (let i = 0; i < 16; i++) {
       const a = rnd() * Math.PI * 2, h = 0.1 + rnd() * 0.28, r = Math.sqrt(1 - h * h) * 0.8;
-      const c = FL.sprite(FL.tex.icon('cloud'), 1, { fog: false, opacity: themeKey === 'industrie' ? 0.75 : 0.6 });
+      const c = FL.sprite(cloudTex, 1, { alpha: true, fog: false, opacity: themeKey === 'industrie' ? 0.75 : 0.6 });
       c.position.set(Math.cos(a) * r, h * 0.8, Math.sin(a) * r);
       const s = 0.25 + rnd() * 0.3;
       c.scale.set(s * 1.8, s * 0.7, 1);
