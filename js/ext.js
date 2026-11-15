@@ -69,12 +69,15 @@
       if (!data || !THREE.GLTFLoader) return fail(new Error('fehlt'));
       new THREE.GLTFLoader().parse(b64(data), '', g => { delete FL.GLB[name]; prepare(name, g.scene); ok(); }, fail);
     })).catch(e => { console.warn('Modell ' + name + ' nicht geladen', e && e.message); });
-    X.promise = names.reduce((p, n) => p.then(() => one2(n)), Promise.resolve()).then(() => { X.done = true; for (const f of X.waiting.splice(0)) f(); });
+    // zwischen zwei Modellen kurz Luft lassen, damit Menü und Bild nicht stocken
+    const pause = () => new Promise(ok => setTimeout(ok, 30));
+    X.promise = names.reduce((p, n) => p.then(() => one2(n)).then(pause), Promise.resolve()).then(() => { X.done = true; for (const f of X.waiting.splice(0)) f(); });
     return X.promise;
   };
   // ruft fn auf, sobald alle Modelle da sind (spätestens nach 12 Sekunden, dann eben mit den einfachen Modellen)
   X.whenReady = fn => {
-    if (X.done || !X.promise) return fn();
+    if (!X.promise) X.load();
+    if (X.done) return fn();
     let called = false; const go = () => { if (!called) { called = true; fn(); } };
     X.waiting.push(go); setTimeout(go, 12000);
   };
