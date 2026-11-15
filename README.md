@@ -8,6 +8,8 @@ Ein 3D-Spiel für den Browser: Karriere mit 12 Einsätzen, Luftangriffe im Kampf
 - Auf dem iPad in Safari öffnen, dann „Teilen“ und „Zum Home-Bildschirm“. Danach läuft das Spiel im Vollbild und auch ohne Internet.
 - Die Steuerung und alle Tipps stehen in der [ANLEITUNG.md](ANLEITUNG.md).
 
+**Als App:** Das Spiel lässt sich mit Xcode als echte iPad- und iPhone-App bauen. Die Schritte stehen in der [APP-ANLEITUNG.md](APP-ANLEITUNG.md).
+
 Im Ordner `aeltere-spiele` liegen die früheren Python-Spiele (Ballon-Alarm, Frontlinie, Frontlinie 2).
 
 Die 3D-Grafik nutzt [three.js](https://threejs.org) (MIT-Lizenz, siehe `lib/three-LICENSE.txt`).
