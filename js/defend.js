@@ -12,7 +12,7 @@
 
   FL.BaseDefense = class {
     constructor(cfg, lo) {
-      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'defend';
+      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'defend'; this.zoomable = true;
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85; this.nWaves = cfg.waves || 3;
       // Wer alles ausgebaut hat, bekommt mehr und stärkere Gegner
       this.pw = (lo.weapon / 6 + lo.allies / 6 + lo.towers / 5 + (lo.tank + lo.werfer) / 2 + lo.mgnest / 2) / 5;
@@ -85,7 +85,7 @@
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       this.hBC = FL.hud.box('hud-bc');
-      FL.hud.box('hud-bl').innerHTML = '← → umsehen (rundum) · Leertaste oder Mausklick schießen · ↓ Deckung · X Geschütze · 1 2 3 4 Unterstützung · Radar oben rechts: rot = Gegner, pink = Flugzeuge · P Pause';
+      FL.hud.box('hud-bl').innerHTML = '← → umsehen (rundum) · Leertaste oder Mausklick schießen · ↓ Deckung · Mausrad Zoom · X Geschütze · 1 2 3 4 Unterstützung · Radar oben rechts: rot = Gegner, pink = Flugzeuge · P Pause';
       this.hCover = FL.el('div', 'cover-note', 'IN DECKUNG', FL.hud.root);
     }
 
@@ -498,7 +498,9 @@
       // bei Zielen in der Luft hebt sich der Blick etwas
       const up = this.lock && this.lock.air ? FL.clamp((this.lock.y - 6) / Math.max(20, Math.hypot(this.lock.x, this.lock.z)) * 26, 0, 14) : 0;
       this.lookY = FL.lerp(this.lookY || 0, up, 1 - Math.exp(-4 * (dt || 1)));
-      cam.position.set(-sin * 10 + FL.rand(-sh, sh), 8.2 + FL.rand(-sh, sh), -cos * 10);
+      FL.touch.wheelZoom();
+      const k = FL.touch.view(cam);                                 // Zoom: zwei Finger oder Mausrad
+      cam.position.set(-sin * 10 * k + FL.rand(-sh, sh), 8.2 * k + FL.rand(-sh, sh), -cos * 10 * k);
       cam.lookAt(sin * 22, 1.2 + this.lookY, cos * 22);
       this.stage.update(new THREE.Vector3(sin * 12, 0, cos * 12));
     }
