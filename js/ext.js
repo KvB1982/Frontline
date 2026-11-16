@@ -21,7 +21,10 @@
     tree11: { high: 5.0, yaw: 0, bottom: -0.05, file: 'deko', flat: true },
     tent:   { size: 6.2, yaw: 0, bottom: -0.03, file: 'deko' },
     radar:  { high: 6.6, yaw: 0, bottom: 0, file: 'deko' },
-    wtower: { high: 8.8, yaw: 0, bottom: 0, file: 'deko' }
+    wtower: { high: 8.8, yaw: 0, bottom: 0, file: 'deko' },
+    // mit 3D AI Studio erzeugt: Geschützwagen und eigener Soldat (raw = Maße stecken schon im Modell)
+    spg:    { size: 9.4,  yaw: -Math.PI / 2, bottom: 0 },
+    soldat: { raw: true }
   };
   const X = FL.ext = { tpl: {}, done: false, waiting: [], DEF };
   const norm = s => String(s || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -45,6 +48,7 @@
       o.material = mats.get(o.material); o.castShadow = true; o.receiveShadow = false;
     });
     const hold = new THREE.Group(); hold.add(scene);
+    if (d.raw) { for (const m of mats.values()) m.side = THREE.DoubleSide; X.tpl[name] = { hold, size: new THREE.Vector3(1, 1, 1), top: 1 }; return; }
     scene.rotation.y = d.yaw;
     if (name === 'jet') { const off = find(scene, 'LandingOff'); if (off) off.visible = false; }       // mit ausgefahrenem Fahrwerk vermessen
     hold.updateMatrixWorld(true);
@@ -119,6 +123,32 @@
     const on = find(g, 'LandingOn'), off = find(g, 'LandingOff'), light = find(g, 'LandingLight');
     u.gear = { get visible() { return on ? on.visible : false; }, set visible(v) { if (on) on.visible = v; if (off) off.visible = !v; if (light) light.visible = v; } };
     u.gear.visible = false;
+    return g;
+  };
+  // Geschützwagen mit Rohr (Stufe 1 bis 3); die Raketenwerfer-Stufen bleiben beim einfachen Modell
+  const oldSpg = FL.spgModel, oldSoldier = FL.soldier;
+  FL.spgModel = (pal, lvl) => {
+    const g = lvl <= 3 && pal === FL.PAL.ally ? make('spg') : null;
+    if (!g) return oldSpg(pal, lvl);
+    g.userData = { head: new THREE.Object3D(), r: 3.2, h: 3.2 };
+    return g;
+  };
+  // Eigener Soldat: das Modell ist in Rumpf, Arme und Beine zerlegt, bewegt wird es wie die einfachen Figuren (FL.animSoldier)
+  FL.soldier = o => {
+    const t = o.team === 'ally' ? X.tpl.soldat : null;
+    if (!t) return oldSoldier(o);
+    const src = t.hold.clone(true), g = new THREE.Group(), body = new THREE.Group(), legs = [], arms = [];
+    const take = n => { const p = find(src, n); body.add(p); return p; };
+    g.add(body); take('rumpf');
+    for (const [n, sx] of [['R', -1], ['L', 1]]) {
+      legs.push(take('bein' + n));
+      const arm = take('arm' + n); arm.rotation.x = sx < 0 ? -1.0 : -1.25; arm.rotation.z = sx * -0.22; arms.push(arm);
+    }
+    const gun = new THREE.Group();
+    gun.position.set(0.04, 1.14, 0.36);
+    FL.WEAPON_LOOK[o.weapon || 0](gun);
+    body.add(gun);
+    g.userData = { legs, arms, body, gun, phase: Math.random() * 6 };
     return g;
   };
   // Bäume: im Bodenkampf und beim Panzer die Sketchfab-Bäume, aus dem Flugzeug (simple) die einfachen, weil dort sehr viele stehen
