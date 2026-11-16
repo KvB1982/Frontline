@@ -1063,6 +1063,6 @@
         FL.hud.msg(this.flaps ? 'Landeklappen ausgefahren: langsamer, sinkt später' : 'Landeklappen eingefahren', C.cyan, true);
       }
     }
-    destroy() { FL.tilt.air = false; this.stage.dispose(); }
+    destroy() { FL.tilt.air = false; FL.tilt.cockpit = false; this.stage.dispose(); }
   };
 })();

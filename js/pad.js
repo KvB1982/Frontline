@@ -28,12 +28,16 @@
     if (m.k === 's') {
       if (!G.on) { G.on = true; if (G.onChange) G.onChange(); }
       const t = FL.clamp(+m.t || 0, -1, 1), c = FL.clamp(+m.c || 0, -1, 1);
-      if (G.air) {
+      if (m.j) {
+        // zu Fuß oder im Fahrzeug: Das iPhone zeigt den runden Steuerknüppel, Neigen zählt nicht
+        G.turn = G.climb = 0; G.rollDeg = 0;
+        FL.stick.x = FL.clamp(+m.x || 0, -1, 1); FL.stick.y = FL.clamp(+m.y || 0, -1, 1);
+      } else if (G.air) {
         // in der Luft: wie die Neigungssteuerung des iPads
         G.turn = t; G.climb = c; G.rollDeg = +m.r || 0;
         FL.stick.x = FL.stick.y = 0;
       } else {
-        // am Boden (laufen, rollen, starten): Neigen wirkt wie der runde Steuerknüppel
+        // im Flugzeug am Boden (rollen, starten): Neigen wirkt wie der runde Steuerknüppel
         G.turn = 0; G.rollDeg = 0; G.climb = c;
         FL.stick.x = -t; FL.stick.y = -c;
       }
@@ -42,10 +46,19 @@
     else if (m.k === 'u' && typeof m.c === 'string') { heldKeys.delete(m.c); release(m.c); }
   };
 
+  // Das iPhone zeigt zu Fuß den runden Steuerknüppel und erst im Flugzeug den Schubhebel. Dafür muss es wissen, wo man gerade ist.
+  let sentPit = null;
+  setInterval(() => {
+    if (!P.on) { sentPit = null; return; }
+    const pit = FL.app && FL.app.mode && G.cockpit ? 1 : 0;
+    if (pit !== sentPit) { sentPit = pit; P.send({ k: 'm', p: pit, a: G.air ? 1 : 0 }, true); }
+  }, 200);
+
   // ---------------------------------------------------------------- iPhone: der Steuerknüppel-Bildschirm
   let ctl = null;
   const padData = m => {
     if (m.k === 'cal') { G.center(true); if (ctl) ctl.flash(); }
+    else if (m.k === 'm') { if (ctl) ctl.mode(!!m.p, !!m.a); }
     else if (m.k === 'b' && FL.haptic) FL.haptic(m.s || 'LIGHT');
   };
   P.openController = onClose => {
@@ -59,7 +72,7 @@
     const cal = FL.el('div', 'pc-chip pc-cal', 'Kalibrieren', mid);
     const sens = FL.el('div', 'pc-chip', G.sensText(), mid);
     sens.addEventListener('click', () => { sens.textContent = G.nextSens(); if (FL.haptic) FL.haptic('LIGHT'); });
-    FL.el('div', 'pc-help', 'iPhone quer halten wie ein Lenkrad.<br>Drehen = Kurve, kippen = hoch und runter.', mid);
+    const help = FL.el('div', 'pc-help', '', mid);
     // Schubhebel links
     const thr = FL.el('div', 'pc-thr', '<span>NB</span><i></i><b></b><em></em>', root);
     const fill = thr.querySelector('i'), grip = thr.querySelector('b'), txt = thr.querySelector('em');
@@ -76,6 +89,33 @@
     const endT = e => { if (e.pointerId === tid) tid = null; };
     thr.addEventListener('pointerup', endT); thr.addEventListener('pointercancel', endT);
     setT(0);
+    // runder Steuerknüppel links: zu Fuß und im Fahrzeug, solange man nicht im Flugzeug sitzt
+    const stick = FL.el('div', 'tstick', '', FL.el('div', 'pc-stick', '', root)), knob = FL.el('div', 'tknob', '', stick);
+    let sx = 0, sy = 0, sid = null, pit = false;
+    const setS = e => {
+      const r = stick.getBoundingClientRect(), R = r.width / 2, M = R * 0.6;
+      let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+      const d = Math.hypot(dx, dy);
+      if (d > M) { dx *= M / d; dy *= M / d; }
+      knob.style.transform = `translate(${dx}px,${dy}px)`;
+      let x = dx / M, y = -dy / M;
+      const m = Math.hypot(x, y);
+      if (m < 0.15) x = y = 0; else { const k = (m - 0.15) / 0.85 / m; x *= k; y *= k; }
+      sx = x; sy = y;
+    };
+    const endS = e => { if (e && e.pointerId !== sid) return; sid = null; sx = sy = 0; knob.style.transform = ''; stick.classList.remove('on'); };
+    stick.addEventListener('pointerdown', e => { if (sid !== null) return; e.preventDefault(); sid = e.pointerId; try { stick.setPointerCapture(sid); } catch (err) {} stick.classList.add('on'); setS(e); });
+    stick.addEventListener('pointermove', e => { if (e.pointerId === sid) setS(e); });
+    stick.addEventListener('pointerup', endS); stick.addEventListener('pointercancel', endS);
+    let inited = false;
+    const mode = (p, air) => {
+      if (inited && p === pit) return;
+      inited = true; pit = p;
+      root.classList.toggle('pit', pit);
+      endS(); tid = null; setT(pit && air ? 0.62 : 0);                                  // wer mitten im Flug dazukommt, behält Schub
+      help.innerHTML = pit ? 'iPhone quer halten wie ein Lenkrad.<br>Drehen = Kurve, kippen = hoch und runter.' : 'Links der Steuerknüppel zum Laufen und Fahren.<br>Im Flugzeug erscheint dort der Schubhebel.';
+    };
+    mode(false);
     // Knöpfe rechts
     const right = FL.el('div', 'pc-right', '', root);
     const key = (label, code, cls) => {
@@ -104,9 +144,10 @@
     // 30-mal in der Sekunde die Haltung schicken
     const timer = setInterval(() => {
       dot.style.transform = `translate(${-G.turn * 22}px,${G.climb * 22}px)`;
-      P.send({ k: 's', t: +G.turn.toFixed(3), c: +G.climb.toFixed(3), r: Math.round(G.rollDeg || 0), v: +v.toFixed(2) }, false);
+      if (pit) P.send({ k: 's', t: +G.turn.toFixed(3), c: +G.climb.toFixed(3), r: Math.round(G.rollDeg || 0), v: +v.toFixed(2) }, false);
+      else P.send({ k: 's', j: 1, x: +sx.toFixed(3), y: +sy.toFixed(3) }, false);
     }, 33);
-    ctl = { flash, draw };
+    ctl = { flash, draw, mode };
     const shut = () => {
       clearInterval(timer);
       root.remove(); ctl = null; P.ctl = false;

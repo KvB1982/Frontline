@@ -240,6 +240,10 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 .pc-cal.flash { background: var(--gold); color: #111; }
 .pc-help { font-size: 12px; line-height: 1.4; color: var(--muted); }
 .pc-thr { position: absolute; left: calc(22px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 78px; border-radius: 18px; background: rgba(20, 30, 40, 0.8); border: 2px solid rgba(220, 235, 245, 0.45); }
+.padctl:not(.pit) .pc-thr, .padctl.pit .pc-stick { display: none; }
+.pc-stick { position: absolute; left: calc(22px + env(safe-area-inset-left)); bottom: calc(26px + env(safe-area-inset-bottom)); }
+.pc-stick .tstick { width: 176px; height: 176px; }
+.pc-stick .tknob { width: 78px; height: 78px; margin: -39px 0 0 -39px; }
 .pc-thr span { position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 800; color: var(--orange); }
 .pc-thr i { position: absolute; left: 10px; right: 10px; bottom: 14px; border-radius: 8px; background: rgba(70, 220, 255, 0.35); }
 .pc-thr b { position: absolute; left: 4px; right: 4px; height: 28px; margin-bottom: -14px; border-radius: 10px; background: #dfe8ee; }
