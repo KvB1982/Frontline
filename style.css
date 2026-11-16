@@ -224,7 +224,9 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 @keyframes bootpulse { from { opacity: 0.35; } to { opacity: 0.9; } }
 
 /* Steuerknüppel: Seite im Menü und der Bildschirm auf dem iPhone */
-.padpage p { margin: 0 0 12px; line-height: 1.45; }
+.padpage p { margin: 12px 0 0; line-height: 1.45; }
+.padpage .padstate:empty { display: none; }
+.padpage .padstate { margin: 0 0 12px; }
 .padstate { color: var(--cyan); font-weight: 700; min-height: 1.4em; }
 .padctl { position: fixed; inset: 0; z-index: 60; background: #0b1015; color: #fff; font-family: var(--font); touch-action: none; user-select: none; -webkit-user-select: none; }
 .pc-status { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--gold); padding: 0 150px; }

@@ -111,8 +111,6 @@
     if (!A.backdrop || A.mode) toMenus();
     const P = page('Steuerknüppel', () => { FL.pad.onChange = null; mainMenu(); }, 'Menü');
     const box = FL.el('div', 'panel padpage', '', P.body);
-    FL.el('p', '', 'Ein iPhone wird zum Steuerknüppel für das Spiel auf dem iPad. Im Kampfflugzeug steuerst du durch Neigen des iPhones, Schubhebel und Knöpfe liegen ebenfalls dort. Bei Treffern vibriert das iPhone.', box);
-    FL.el('p', 'muted', 'Auf beiden Geräten muss die App offen sein, WLAN oder Bluetooth eingeschaltet. Internet ist nicht nötig. Beim ersten Mal fragt das Gerät, ob die App Geräte im lokalen Netzwerk finden darf: bitte erlauben.', box);
     const state = FL.el('p', 'padstate', '', box);
     const row = FL.el('div', 'pair', '', box);
     const host = btn(row, '', 'primary', () => {
@@ -124,6 +122,8 @@
       FL.pad.onChange = null;
       FL.pad.openController(padPage);
     });
+    FL.el('p', '', 'Ein iPhone wird zum Steuerknüppel für das Spiel auf dem iPad. Im Kampfflugzeug steuerst du durch Neigen des iPhones, Schubhebel und Knöpfe liegen ebenfalls dort. Bei Treffern vibriert das iPhone.', box);
+    FL.el('p', 'muted', 'Auf beiden Geräten muss die App offen sein, WLAN oder Bluetooth eingeschaltet. Internet ist nicht nötig. Beim ersten Mal fragt das Gerät, ob die App Geräte im lokalen Netzwerk finden darf: bitte erlauben.', box);
     const draw = () => {
       const on = FL.pad.role === 'host';
       host.innerHTML = on ? 'Steuerknüppel ausschalten<small>dieses Gerät spielt wieder allein</small>' : 'Hier wird gespielt<small>auf dem iPad antippen, dann das iPhone verbinden</small>';
