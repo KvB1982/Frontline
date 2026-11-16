@@ -102,7 +102,7 @@ Es gibt 12 Einsätze, die nacheinander frei werden: Basen angreifen und erobern,
 
 - **Waffen:** von der Pistole bis zur Mega-Kanone
 - **Ausrüstung:** Schutzweste, Kameraden, Extra-Leben, Sanitäter-Kit
-- **Unterstützung:** Drohnen, Kampfhubschrauber, Kampfbomber, Artillerie, Begleit-Panzer, Raketenwerfer
+- **Unterstützung:** Drohnen, Kampfhubschrauber, Kampfbomber, Artillerie, Bodenverstärkung, Kampfjets, Begleit-Panzer, Raketenwerfer
 - **Basis:** Geschütze (in der eigenen Basis feste Geschütztürme, beim Angriff fahren sie als Geschützwagen mit), MG-Nester, Bunker, Sanitätszelt, Radar
 - **Flugzeug:** Panzerung, Bordkanone, Bomben, Triebwerk, Raketen
 - **Panzer:** Panzerung, Kanone, Ladeautomatik, Motor
@@ -117,7 +117,7 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 
 | Einsatz | Tasten |
 | --- | --- |
-| Basis angreifen | ↑ ↓ laufen, ← → drehen, A D seitwärts gehen, Leertaste oder Mausklick schießen, C Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, Q Befehl an den Trupp, X Geschützwagen abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie |
+| Basis angreifen | Mausklick ins Gelände: dorthin laufen, ← → drehen und zielen, Leertaste schießen, C anhalten, Q Befehl an den Trupp, R Trupp teilen (Flanke), X Geschützwagen abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie, 5 Bodenverstärkung, 6 Kampfjets (W A S D laufen geht auch) |
 | Basis verteidigen | ← → umsehen, Leertaste schießen, ↓ Deckung, X Geschütze abfeuern, T Geschütze an/aus, 1 2 3 4 Unterstützung |
 | Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen, G Fahrwerk ein/aus, Umschalt halten = Nachbrenner |
 | Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone, 1 2 3 4 Unterstützung anfordern: Drohnen, Hubschrauber, Bomber, Artillerie |
@@ -190,17 +190,23 @@ Die Verteidigung ist neu gebaut. Deine Basis liegt mitten auf einem offenen Feld
 
 ## Basis angreifen: als Kommandant im freien Feld
 
-Beim Angriff steuerst du den Kommandanten als Figur und läufst frei durch das Gelände. Es gibt keine feste Linie mehr.
+Beim Angriff steuerst du den Kommandanten als Figur und läufst frei durch das wellige Gelände. Am Ende wartet eine richtige Militärbasis.
 
-- **Ziel:** Auf dem Weg zur gegnerischen Basis liegen Gebiete mit einer roten Fahne und einem gelben Ring am Boden. Sichere eines nach dem anderen: erst alle Gegner dort besiegen, dann in den Ring gehen. Die Fahne wird blau, dein Trupp wird geheilt, und es geht weiter. Am Ende zerstörst du alle Gebäude der Basis. Solange noch ein Gebiet fehlt, hält die Basis alles aus.
-- **Wohin?** Oben in der Mitte zeigt ein Pfeil mit Meterangabe zum nächsten Ziel, über dem Ziel schwebt ein Zielkreuz. Die runde Karte oben rechts zeigt Gebiete (gelber Ring), Gegner (rot) und deinen Trupp (blau).
-- **Dein Trupp** folgt dir lose und denkt selbst mit: Die Kameraden verteilen sich, suchen sich bei Feindkontakt Sandsäcke oder Felsen als Deckung und rücken abwechselnd vor, während die anderen Feuerschutz geben. Der Panzer bleibt zum Schießen stehen, der Raketenwerfer und die Geschützwagen halten sich weiter hinten.
-- **Befehle mit Q** (iPad: Knopf „Trupp“): „folgt dir“, „hält die Stellung“ (alle bleiben, wo sie sind, zum Beispiel als Feuerschutz, während du eine Flanke umgehst) und „stürmt vor“ (der Trupp geht vor dir auf das Ziel los).
-- **Deckung:** C halten (iPad: Knopf „Deckung“ oder nach unten wischen und halten). Hinter Sandsäcken oder Felsen prallen Kugeln ab, und du erholst dich schneller. Wer in Bewegung bleibt, wird seltener getroffen.
-- **Zielen:** Die Waffe rastet auf den Gegner ein, der am nächsten an deiner Blickrichtung liegt.
-- **Getroffene Kameraden** bleiben sitzen, bis du hingehst und E hältst. Nach einer Weile stehen sie auch von selbst wieder auf. Beschädigte Fahrzeuge reparierst du genauso.
+- **Laufen:** Tippe auf den Boden (am Rechner: Mausklick). Der Kommandant rennt geduckt dorthin, bis du woanders hintippst. Ein blauer Ring zeigt das Laufziel. Der Knopf „Halt“ (Taste C) hält sofort an.
+- **In Stellung und in Deckung:** Sobald er stehen bleibt, geht er von selbst in Stellung. Hinter Sandsäcken, Schutzwällen oder Felsen steht dann „IN DECKUNG“: Dort prallen Kugeln ab, und du erholst dich schneller. Tippst du neben eine Deckung, stellt er sich gleich auf die sichere Seite.
+- **Drehen und zielen:** Der Steuerknüppel links (am Rechner ← →) dreht nur den Körper und damit die Waffe. Läuft der Kommandant gerade zu einem Ziel und du drehst nach links, läuft er weiter dorthin, schaut und schießt aber nach links. Wischen über den freien Bildschirm dreht auch.
+- **Zielhilfe:** Zeigst du ungefähr in die Richtung eines Gegners, rastet die Waffe ein und der Kommandant dreht sich von selbst genau darauf. Vor der Basis gilt das auch für Wachtürme, Bunker und Gebäude.
+- **Gelände:** Der Boden ist wellig. Hügel versperren die Sicht und halten Kugeln auf, für dich und für den Gegner. Hinter einer Kuppe bist du sicher, zum Schießen musst du so weit vor, dass du das Ziel siehst.
+- **Ziel:** Auf dem Weg zur gegnerischen Basis liegen Gebiete mit einer roten Fahne und einem gelben Ring am Boden. Sichere eines nach dem anderen: erst alle Gegner dort besiegen, dann in den Ring gehen. Die Fahne wird blau, dein Trupp wird geheilt, und es geht weiter. Solange noch ein Gebiet fehlt, hält die Basis alles aus.
+- **Die gegnerische Basis** ist ein Militärlager mit Zaun und Stacheldraht, Kontrollpunkt, Wachtürmen, MG-Nestern, Bunkern, Kommandogebäude, Kasernen, Zelten, Fuhrpark mit Lastwagen, Jeeps und Panzern, Hubschrauberlandeplatz, Tanklager und Radar. In höheren Leveln kommen Hangar, Geschütztürme und mehr Wachtürme dazu. Hinein geht es durch den Kontrollpunkt vorn oder durch die beiden Seitentore. Panzer und Explosionen reißen Lücken in den Zaun. Zerstöre alle Ziele (oben steht, wie viele noch fehlen). Tanklager und Fässer reißen mit, was daneben steht.
+- **Wohin?** Oben in der Mitte zeigt ein Pfeil mit Meterangabe zum nächsten Ziel, über dem Ziel schwebt ein Zielkreuz. Die runde Karte oben rechts zeigt Gebiete (gelber Ring), Gegner (rot), deinen Trupp (blau) und abgeteilte Gruppen (grün).
+- **Dein Trupp** folgt dir lose und denkt selbst mit: Die Kameraden verteilen sich, suchen sich bei Feindkontakt Sandsäcke, Felsen oder einen Hügel als Deckung und rücken abwechselnd vor, während die anderen Feuerschutz geben. Fahrzeuge drehen sich vor dem Schuss wirklich zum Ziel, beim Panzer dreht sich dazu der Turm.
+- **Befehle mit Q** (iPad: Knopf „Trupp“): „folgt dir“, „hält die Stellung“ und „stürmt vor“ (der Trupp geht vor dir auf das Ziel los).
+- **Trupp teilen mit R** (iPad: Knopf „Flanke“): Die Hälfte deiner Einheiten zieht seitlich um das Ziel herum und greift von der Flanke an, bei der Basis durch das Seitentor. Einmal drücken: Flanke links. Noch einmal: Flanke rechts. Ein drittes Mal: Alle sammeln sich wieder bei dir.
+- **Bodenverstärkung mit 5** (iPad: Knopf „Verst.“, im Laden kaufen): einmal pro Einsatz. Kameraden und ein Panzer rücken aus einer anderen Richtung auf das Ziel vor und greifen mit an. Stufe 2 bringt mehr Kameraden, einen Raketenwerfer und einen Geschützwagen mit.
+- **Kampfjets mit 6** (iPad: Knopf „Jets“, im Laden kaufen): Zwei Kampfjets fliegen das Ziel mehrmals an, mit Raketen, Bordkanone oder einer Bombe, drehen ab und greifen wieder an.
+- **Getroffene Kameraden** bleiben sitzen, bis du hinläufst und neben ihnen stehen bleibst. Nach einer Weile stehen sie auch von selbst wieder auf. Beschädigte Fahrzeuge reparierst du genauso.
 - **Zoomen:** Auf dem iPad mit zwei Fingern wie bei Fotos: auseinanderziehen holt das Bild heran, zusammenschieben zeigt mehr Überblick. Das geht beim Angriff, bei der Verteidigung und im Panzer. Am Rechner zoomt bei Angriff und Verteidigung das Mausrad.
-- **iPad:** Links der runde Steuerknüppel (vor und zurück laufen, links und rechts drehen), auf dem freien Bildschirm wischen dreht den Blick.
 
 Bei „Basis verteidigen“ bewegen sich die gegnerischen Soldaten und Fahrzeuge jetzt langsamer.
 
@@ -246,7 +252,7 @@ Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sk
 
 Auf dem iPad gibt es Knöpfe auf dem Bildschirm: links zum Bewegen oder Lenken, rechts zum Schießen und für alles andere. Im Flugzeug und im Panzer ist links ein runder Steuerknüppel, den du in jede Richtung ziehen kannst. Das iPad quer halten.
 
-Im Bodenkampf kannst du auch wischen: mit dem Finger nach links oder rechts ziehen bewegt deinen Trupp, nach unten wischen und halten ist Deckung. Die Pfeil-Knöpfe gehen weiterhin.
+Beim Angriff tippst du auf den Boden, um dorthin zu laufen, und drehst mit dem Steuerknüppel links. Bei der Verteidigung kannst du wischen: nach links oder rechts ziehen dreht den Blick, nach unten wischen und halten ist Deckung.
 
 Das Kampfflugzeug kannst du in der Luft auch durch Neigen steuern, wie mit einem Steuerknüppel: das iPad wie ein Lenkrad nach links oder rechts drehen für Kurven, die Oberkante zu dir ziehen für Nase hoch, von dir weg kippen für Nase runter. Beim ersten Flug fragt das iPad einmal, ob das Spiel den Bewegungssensor benutzen darf. Unten in der Mitte schaltest du mit „Neigen: an/aus“ zwischen Neigen und Steuerknüppel um. Halte das iPad so, wie du bequem fliegen willst, und tippe auf „Kalibrieren“: Diese Haltung ist dann die Mitte, das Flugzeug fliegt geradeaus. Das geht jederzeit, auch mitten im Flug. Mit „Empfindlichkeit“ daneben stellst du in fünf Stufen ein, wie stark das Flugzeug auf Neigen reagiert: Tippen schaltet weiter, Stufe 1 ist am ruhigsten, Stufe 5 am stärksten. Der kleine Punkt im Kästchen daneben zeigt, was die Neigung gerade steuert. Kurz vor dem Start kalibriert das Spiel einmal von selbst. Am Boden (laufen und rollen) steuerst du immer mit dem Steuerknüppel.
 
