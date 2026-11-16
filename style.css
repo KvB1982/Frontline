@@ -158,6 +158,7 @@ body.touch .hud-tr { right: calc(10px + env(safe-area-inset-right)); }
 .tbtn.bomb { background: rgba(200, 150, 30, 0.6); }
 .tbtn.small { width: 66px; height: 66px; font-size: 13px; }
 .tbtn.cyan { border-color: var(--cyan); }
+.tbtn.green { border-color: #5fd07a; }
 .tbtn.orange { border-color: var(--orange); font-size: 22px; }
 .tbtn.rk { border-color: var(--orange); }
 .tbtn.gold { border-color: var(--gold); color: var(--gold); }

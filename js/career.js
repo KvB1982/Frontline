@@ -54,6 +54,8 @@ FL.ITEMS = [
   { id: 'heli', group: 'Unterstützung', name: 'Kampfhubschrauber', prices: [450, 600], desc: 'Taste 2: fliegt über das Feld und feuert Raketen. Stufe 2 lädt schneller. Im Panzer-Einsatz begleitet er dich eine Weile.' },
   { id: 'bomber', group: 'Unterstützung', name: 'Kampfbomber', prices: [700, 800], desc: 'Taste 3: Bombenteppich über das ganze Feld. Stufe 2 lädt schneller. Im Panzer-Einsatz bombardiert er dein Ziel.' },
   { id: 'arty', group: 'Unterstützung', name: 'Artillerie', prices: [500, 700], desc: 'Taste 4: Die Artillerie schießt von weit hinten eine Salve Granaten auf die Gegner. Stufe 2 lädt schneller. Im Panzer-Einsatz trifft die Salve dein Ziel.' },
+  { id: 'reinf', group: 'Unterstützung', name: 'Bodenverstärkung', prices: [650, 900], desc: 'Taste 5, einmal pro Angriff: Kameraden und ein Panzer rücken aus einer anderen Richtung auf das Ziel vor und greifen mit an. Stufe 2 bringt mehr Kameraden, einen Raketenwerfer und einen Geschützwagen mit.' },
+  { id: 'jets', group: 'Unterstützung', name: 'Kampfjets', prices: [800, 900], desc: 'Taste 6 beim Angriff: Zwei Kampfjets fliegen das Ziel mehrmals an, mit Raketen, Bordkanone und Bombe, drehen ab und greifen wieder an. Stufe 2 fliegt einen Anflug mehr und ist schneller wieder bereit.' },
   { id: 'tank', group: 'Unterstützung', name: 'Begleit-Panzer', prices: [600], desc: 'Ein eigener Panzer kämpft im Bodenkampf mit.' },
   { id: 'werfer', group: 'Unterstützung', name: 'Raketenwerfer', prices: [750], desc: 'Ein Raketenwerfer-Fahrzeug unterstützt dich im Bodenkampf.' },
   { id: 'towers', group: 'Basis', name: 'Geschütze', prices: [200, 350, 550, 800, 1100], desc: 'Taste X feuert. Bei der Verteidigung stehen sie als Geschütztürme in deiner Basis, beim Angriff fahren sie als Geschützwagen mit. Jede Stufe macht sie stärker.', levels: ['keine'].concat(FL.TOWER_LEVELS.map(t => t.name)) },
@@ -81,18 +83,18 @@ FL.loadout = up => {
 // ---------------------------------------------------------------- Karriere
 FL.KIND_NAMES = { attack: 'Angriff: Basis erobern', defend: 'Verteidigung der eigenen Basis', flight: 'Luftangriff im Kampfflugzeug', heli: 'Hubschrauber: Bodentruppen unterstützen', tank: 'Panzer-Einsatz' };
 FL.CAREER = [
-  { kind: 'attack', theme: 'wald', tier: 0, sections: 2, reward: 200, name: 'Das Waldlager', text: 'Ein kleines Lager mit Holzpalisade. Rücke über den Waldweg vor und zerstöre Tor, Wachtürme und Kommandozelt. Deine Ausrüstung ist noch schwach: Nutze die Deckung!' },
+  { kind: 'attack', theme: 'wald', tier: 0, sections: 2, reward: 200, name: 'Das Waldlager', text: 'Ein kleines Militärlager mit Zaun, Wachtürmen und Fuhrpark. Tippe auf den Boden, um dorthin zu laufen, und zerstöre Wachtürme, MG-Nester und Gebäude. Deine Ausrüstung ist noch schwach: Nutze Hügel und Deckung!' },
   { kind: 'defend', theme: 'wald', tier: 0.5, waves: 3, reward: 220, name: 'Gegenangriff', text: 'Der Gegner will das Lager zurück. Halte deine Basis gegen drei Angriffswellen. Jeder Durchbruch schwächt die Basis.' },
   { kind: 'flight', theme: 'wald', tier: 1, reward: 260, name: 'Treibstofflager', text: 'Steig ins Kampfflugzeug. Zerstöre die markierten Tanks und Bunker mit Bomben und weiche dem Flak-Feuer aus.' },
-  { kind: 'attack', theme: 'wueste', tier: 1.5, sections: 3, reward: 300, name: 'Das Wüstenfort', text: 'Ein Fort aus Sandstein mit dicken Mauern. Der Gegner schickt jetzt Elite-Soldaten und Jeeps.' },
+  { kind: 'attack', theme: 'wueste', tier: 1.5, sections: 3, reward: 300, name: 'Der Wüstenstützpunkt', text: 'Ein Stützpunkt in der Wüste mit Bunkern, Hangar und Tanklager. Der Gegner schickt jetzt Elite-Soldaten und Jeeps.' },
   { kind: 'tank', theme: 'wueste', tier: 1.5, reward: 320, name: 'Panzervorstoß', text: 'Fahr mit deinem Panzer durch die Wüste und zerstöre alle markierten Ziele. Achte auf gegnerische Panzer und Geschütze.' },
   { kind: 'defend', theme: 'wueste', tier: 2, waves: 4, reward: 340, name: 'Sandsturm', text: 'Vier Wellen mit Raketen-Soldaten und Panzern rollen auf deine Basis zu. Türme und MG-Nester helfen.' },
   { kind: 'flight', theme: 'industrie', tier: 2.5, reward: 380, name: 'Der Flugplatz', text: 'Greife den gegnerischen Flugplatz an: Hangars, Radar und Tower. Jetzt steigen auch feindliche Jäger auf.' },
-  { kind: 'attack', theme: 'industrie', tier: 3, sections: 3, reward: 420, name: 'Die Fabrik', text: 'Eine Fabrik-Basis aus Beton mit Schornstein und Tanklager. Schwere Soldaten und Panzer verteidigen sie.' },
+  { kind: 'attack', theme: 'industrie', tier: 3, sections: 3, reward: 420, name: 'Die Fabrik', text: 'Eine große Basis neben der Fabrik mit Geschütztürmen, Schornstein und Tanklager. Schwere Soldaten und Panzer verteidigen sie.' },
   { kind: 'tank', theme: 'winter', tier: 3, reward: 440, name: 'Eisfront', text: 'Panzer-Einsatz im Schnee: Radarstationen, Depots und das Hauptgebäude müssen fallen.' },
   { kind: 'defend', theme: 'winter', tier: 3.5, waves: 5, reward: 480, name: 'Winterschlacht', text: 'Fünf Wellen im Schnee. Der Gegner bringt alles mit, was er hat.' },
   { kind: 'flight', theme: 'daemmerung', tier: 4, reward: 520, name: 'Angriff in der Dämmerung', text: 'Letzter Luftschlag vor dem Sturm auf das Hauptquartier: Zerstöre die Luftabwehr der Festung.' },
-  { kind: 'attack', theme: 'daemmerung', tier: 4.5, sections: 4, reward: 800, name: 'Das Hauptquartier', text: 'Die große Festung des Gegners. Erobere sie und die Karriere ist geschafft!' }
+  { kind: 'attack', theme: 'daemmerung', tier: 4.5, sections: 4, reward: 800, name: 'Das Hauptquartier', text: 'Die größte Basis des Gegners. Erobere sie und die Karriere ist geschafft!' }
 ];
 
 // ---------------------------------------------------------------- Sondereinsätze für Kampfflugzeug und Panzer

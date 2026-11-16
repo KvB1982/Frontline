@@ -84,12 +84,15 @@
     if (recoil !== undefined) u.turret.position.z = -0.2 - recoil * 0.35;
   };
   // Laufen und Ducken
-  FL.animSoldier = (g, t, moving, crouch) => {
-    const u = g.userData, s = moving ? Math.sin(t * 9 + u.phase) * 0.6 : 0;
-    u.legs[0].rotation.x = crouch ? -1.25 : s;
-    u.legs[1].rotation.x = crouch ? 0.5 : -s;
-    u.body.position.y = crouch ? -0.52 : (moving ? Math.abs(Math.sin(t * 9 + u.phase)) * 0.04 : 0);
-    u.body.rotation.x = crouch ? 0.28 : 0;
+  // Laufen und Ducken. low = geduckt rennen: Oberkörper nach vorn, Kopf unten, schnelle Schritte
+  FL.animSoldier = (g, t, moving, crouch, low) => {
+    const u = g.userData, run = low && moving && !crouch, s = moving ? Math.sin(t * (run ? 13 : 9) + u.phase) * (run ? 0.75 : 0.6) : 0;
+    // Beim geduckten Rennen neigt sich der ganze Körper nach vorn, die Beine bleiben unter ihm
+    u.legs[0].rotation.x = crouch ? -1.25 : s - (run ? 0.6 : 0);
+    u.legs[1].rotation.x = crouch ? 0.5 : -s - (run ? 0.6 : 0);
+    u.body.position.y = crouch ? -0.52 : (moving ? Math.abs(Math.sin(t * 9 + u.phase)) * 0.04 : 0) - (run ? 0.03 : 0);
+    u.body.position.z = run ? -0.45 : 0;
+    u.body.rotation.x = crouch ? 0.28 : run ? 0.6 : 0;
   };
 
   // ---------------------------------------------------------------- Fahrzeuge
@@ -174,6 +177,18 @@
     pod.rotation.x = -0.45;
     g.add(pod, box(0.3, 0.9, 0.3, pal.dark, 0, 1.4, -0.4));
     g.userData = { r: 3.2, h: 3 };
+    return g;
+  };
+  // Lastwagen mit Plane (steht in der gegnerischen Basis)
+  FL.truckModel = pal => {
+    const g = new THREE.Group();
+    g.add(box(2.3, 0.4, 6.6, pal.dark, 0, 0.95, 0), box(2.3, 1.5, 1.8, pal.body, 0, 1.9, 2.3), box(2.2, 0.1, 1.7, pal.dark, 0, 2.7, 2.3));
+    const ws = box(2.1, 0.7, 0.08, GLASS, 0, 2.15, 3.22); ws.rotation.x = -0.1; g.add(ws);
+    for (const sx of [-1, 1]) g.add(box(0.05, 0.5, 0.9, GLASS, sx * 1.16, 2.15, 2.45), ball(0.1, G(0xfff2c0), sx * 0.85, 1.35, 3.22, 6, 5));
+    g.add(box(2.4, 0.3, 0.25, mat(0x242424), 0, 0.85, 3.3), box(2.3, 0.7, 4.2, pal.dark, 0, 1.5, -1.1));
+    const tarp = prism3(2.4, 0.5, 4.2, pal.body, 0, 2.95, -1.1); tarp.rotation.y = Math.PI / 2; g.add(box(2.36, 1.15, 4.2, pal.body, 0, 2.4, -1.1), tarp);
+    for (const x of [-1.15, 1.15]) for (const z of [-2.4, -1.1, 2.2]) { const w = cyl(0.56, 0.56, 0.4, 12, RUBBER, x, 0.56, z); w.rotation.z = Math.PI / 2; g.add(w); const hb = cyl(0.25, 0.25, 0.42, 8, WHEEL, x, 0.56, z); hb.rotation.z = Math.PI / 2; g.add(hb); }
+    g.userData = { r: 3.2, h: 3.3 };
     return g;
   };
   // Geschützwagen: fährt beim Angriff mit und ersetzt dort die festen Geschütztürme (Stufe 1 bis 5)
@@ -497,6 +512,56 @@
         g.add(box(0.5, 18, 0.5, mat(0x8a8e90), 0, 9, 0), box(2.4, 1.6, 2.4, con(1, 1), 0, 0.8, 0), ball(0.3, G(0xff3020), 0, 18.3, 0, 6, 5));
         for (const y of [6, 11, 15]) g.add(box(2.2, 0.1, 0.1, mat(0x8a8e90), 0, y, 0), box(0.1, 0.1, 2.2, mat(0x8a8e90), 0, y, 0));
         r = 1.6; h = 18; hp = 6; break;
+      case 'fence': {        // Maschendrahtzaun mit Stacheldraht: Man sieht hindurch, kommt aber nicht durch
+        const len = opt.len || 8, post = mat(0x5a6066);
+        const mesh = box(len, 2.3, 0.04, FL.fenceMat || (FL.fenceMat = new THREE.MeshLambertMaterial({ color: 0xb8c0c6, transparent: true, opacity: 0.34, depthWrite: false })), 0, 1.2, 0);
+        mesh.castShadow = false; g.add(mesh);
+        for (let x = -len / 2; x <= len / 2 + 0.01; x += len / 3) { g.add(box(0.12, 2.6, 0.12, post, x, 1.3, 0)); const a = box(0.07, 0.6, 0.07, post, x, 2.8, -0.16); a.rotation.x = -0.6; g.add(a); }
+        for (const y of [0.08, 2.36]) g.add(box(len, 0.07, 0.07, post, 0, y, 0));
+        for (const [y, z] of [[2.75, -0.14], [3.02, -0.3]]) { const w = box(len, 0.04, 0.04, mat(0xa4a8ac), 0, y, z); w.castShadow = false; g.add(w); }
+        r = len / 2; h = 3; hp = 2; break;
+      }
+      case 'hesco': {        // Schutzwall aus gefüllten Drahtkörben
+        const len = opt.len || 6, n = Math.max(1, Math.round(len / 1.5)), m = mat(0xffffff, { map: FL.tex.sandbag(), rx: 1, ry: 1 });
+        for (let i = 0; i < n; i++) g.add(box(len / n - 0.08, 1.35, 1.2, m, -len / 2 + (i + 0.5) * len / n, 0.675, 0));
+        g.add(box(len, 0.06, 1.24, mat(0x6a6e70), 0, 1.36, 0));
+        cap(len, 1.24, 1.45); r = len / 2; h = 1.4; hp = 99; break;
+      }
+      case 'container': {
+        const m = mat(opt.color || 0x3e5a48, { flat: true });
+        g.add(box(6, 2.5, 2.4, m, 0, 1.25, 0));
+        for (let x = -2.7; x <= 2.71; x += 0.6) g.add(box(0.12, 2.3, 2.46, m, x, 1.25, 0));
+        g.add(box(0.08, 2.2, 0.1, mat(0x8a8e90), 3.02, 1.25, 0), box(6.1, 0.12, 2.5, mat(0x2a2e30), 0, 2.56, 0));
+        cap(6.1, 2.5, 2.7); r = 3.2; h = 2.6; hp = 8; break;
+      }
+      case 'crates': {
+        const wd = mat(0xffffff, { map: FL.tex.wood('#8a6e48'), rx: 1, ry: 1 }), gr = mat(0x4a5a3c, { flat: true });
+        g.add(box(1.4, 1.1, 1.4, wd, -0.8, 0.55, 0.2), box(1.4, 1.1, 1.4, wd, 0.75, 0.55, -0.3), box(1.3, 1.0, 1.3, wd, -0.1, 1.6, 0), box(1.6, 0.7, 1.0, gr, 0.3, 0.35, 1.3));
+        r = 1.8; h = 2.1; hp = 4; break;
+      }
+      case 'barrels': {
+        for (const [x, z, c] of [[-0.7, 0, 0xb8362a], [0.3, 0.5, 0x3a5a78], [0.4, -0.6, 0xb8362a], [-0.4, 1.0, 0x6a6e70], [1.3, 0, 0xb8362a]]) g.add(cyl(0.42, 0.42, 1.2, 10, mat(c, { shiny: 20 }), x, 0.6, z));
+        r = 1.6; h = 1.3; hp = 3; g.userData.fuel = true; break;
+      }
+      case 'floodlight': {
+        const stl = mat(0x5a6066);
+        g.add(box(0.7, 0.4, 0.7, con(0.3, 0.3), 0, 0.2, 0), cyl(0.09, 0.13, 9, 6, stl, 0, 4.7, 0), box(1.9, 0.12, 0.12, stl, 0, 9.1, 0));
+        for (const x of [-0.65, 0, 0.65]) { const l = box(0.5, 0.45, 0.3, mat(0x2a2e30), x, 8.75, 0.12); l.rotation.x = 0.5; g.add(l); const q = box(0.4, 0.34, 0.04, G(0xfff6d0), x, 8.68, 0.27); q.rotation.x = 0.5; g.add(q); }
+        r = 0.6; h = 9; hp = 3; break;
+      }
+      case 'helipad': {      // flache Landeplatte mit großem H
+        const pad = cyl(7, 7, 0.14, 24, con(4, 4), 0, 0.07, 0); pad.castShadow = false; g.add(pad);
+        const ring = new THREE.Mesh(FL.geo('padring', () => new THREE.RingGeometry(5.6, 6.1, 32)), G(0xf0f0e8)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.16; g.add(ring);
+        for (const q of [box(0.5, 0.03, 3.4, G(0xf0f0e8), -1.2, 0.16, 0), box(0.5, 0.03, 3.4, G(0xf0f0e8), 1.2, 0.16, 0), box(2.4, 0.03, 0.5, G(0xf0f0e8), 0, 0.16, 0)]) { q.castShadow = false; g.add(q); }
+        for (let i = 0; i < 4; i++) g.add(ball(0.14, G(i % 2 ? 0xff5040 : 0x60ff80), Math.sin(i * 1.571 + 0.78) * 6.7, 0.2, Math.cos(i * 1.571 + 0.78) * 6.7, 6, 5));
+        r = 7; h = 0.2; hp = 99; break;
+      }
+      case 'garage': {       // offene Fahrzeughalle mit Wellblechdach
+        const stl = mat(0x4c5258), roof = mat(0xffffff, { map: FL.tex.metal(snow ? '#c6ced4' : '#7c8a80'), rx: 4, ry: 1 });
+        for (const x of [-6, -2, 2, 6]) for (const z of [-3.2, 3.2]) g.add(box(0.3, 4.2, 0.3, stl, x, 2.1, z));
+        const top = box(13, 0.25, 7.6, roof, 0, 4.4, 0); top.rotation.x = 0.06; g.add(top, box(12.6, 3.6, 0.2, roof, 0, 2.0, 3.3));
+        cap(13, 7.6, 4.65); r = 6.5; h = 4.6; hp = 12; break;
+      }
       case 'cannon': {       // eigener Geschützturm einer modernen Basis, Stufe 1 bis 5
         const lvl = opt.level || 1, heavy = lvl >= 4;
         const arm = heavy ? mat(0x3c444c, { shiny: 20 }) : FL.PAL.ally.body, dk = mat(heavy ? 0x262c32 : 0x33402a), stl = mat(0x4c5258);
