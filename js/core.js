@@ -29,7 +29,7 @@ FL.el = (tag, cls, html, parent) => {
 
 // ---------------------------------------------------------------- Spielstand
 FL.SAVE_KEY = 'frontlinie3';
-FL.BUILD = 7;      // wie CURRENT_PROJECT_VERSION im Xcode-Projekt; steht auf dem Steuerknüppel-Bildschirm, damit man beide Geräte vergleichen kann
+FL.BUILD = 8;      // wie CURRENT_PROJECT_VERSION im Xcode-Projekt; steht auf dem Steuerknüppel-Bildschirm, damit man beide Geräte vergleichen kann
 FL.defaultSave = () => ({ coins: 0, level: 0, up: {}, muted: false, towersOn: true, manual: null });
 FL.loadSave = () => {
   try {
