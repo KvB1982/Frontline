@@ -51,6 +51,21 @@ npm run ios
 
 Ohne iPad kannst du oben auch einen Simulator wählen (zum Beispiel „iPad Pro“). Neigung und Vibration gibt es dort nicht.
 
+## iPhone als Steuerknüppel
+
+Das iPad zeigt das Spiel, das iPhone wird zum Steuerknüppel. Im Kampfflugzeug steuerst du durch Neigen des iPhones.
+
+1. Die App aus Xcode auf **beide** Geräte spielen (erst das iPad als Ziel wählen und ▶, dann das iPhone und ▶).
+2. Auf beiden Geräten WLAN oder Bluetooth einschalten. Internet ist nicht nötig.
+3. Auf dem **iPad** im Menü „Steuerknüppel“ und dann „Hier wird gespielt“ antippen.
+4. Auf dem **iPhone** im Menü „Steuerknüppel“ und dann „Dieses Gerät ist der Steuerknüppel“ antippen.
+5. Beim ersten Mal fragen beide Geräte, ob die App Geräte im lokalen Netzwerk finden darf. Bitte erlauben.
+6. Sobald auf dem iPhone „Verbunden“ steht, auf dem iPad einen Flugeinsatz starten.
+
+Auf dem iPhone: quer halten wie ein Lenkrad. Drehen fliegt Kurven, kippen zieht hoch oder drückt runter. Links ist der Schubhebel, rechts sind Feuer, Bombe, Rakete, Fahrwerk, Klappen, Rolle und Pause. „Kalibrieren“ macht die aktuelle Haltung zur Mitte. Am Boden (laufen, rollen) wirkt das Neigen wie der runde Steuerknüppel. Bei Treffern vibriert das iPhone.
+
+Geht die Verbindung verloren, hält das Spiel an. Das iPad merkt sich die Einstellung und wartet beim nächsten Start wieder auf das iPhone.
+
 ## Nach Änderungen am Spiel
 
 Immer wenn sich Spieldateien geändert haben:
@@ -75,6 +90,8 @@ Danach in Xcode wieder auf ▶. `npm run sync` kopiert die aktuellen Spieldateie
 | --- | --- |
 | `index.html`, `js`, `models`, … | Das Spiel. Dieselben Dateien laufen weiter auf der Webseite. |
 | `js/native.js` | Kleine Brücke für die App (Vibration). Im Browser macht sie nichts. |
+| `js/pad.js` | iPhone als Steuerknüppel: Bildschirm auf dem iPhone und Übernahme der Eingaben auf dem iPad. |
+| `ios/App/App/AppDelegate.swift` | Enthält auch die direkte Verbindung zwischen den Geräten (MultipeerConnectivity). |
 | `capacitor.config.json` | Name, Kennung und Einstellungen der App. |
 | `scripts/copy-web.mjs` | Kopiert das Spiel nach `www`. |
 | `www` | Kopie des Spiels für die App. Wird automatisch erzeugt, nicht von Hand ändern. |

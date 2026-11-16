@@ -88,6 +88,11 @@
     btn(box, 'Laden<small>Waffen, Ausrüstung, Unterstützung, Basis, Flugzeug, Panzer</small>', '', () => shopPage(mainMenu, 'Menü'));
     btn(box, 'Sondereinsätze<small>16 Szenarien für Kampfflugzeug und Panzer, jedes mit Briefing</small>', '', scenarioPage);
     btn(box, 'Freies Spiel<small>Alles selbst einstellen und sofort spielen</small>', '', manualPage);
+    if (FL.pad.available()) {
+      const pb = btn(box, '', '', padPage);
+      const plabel = () => { pb.innerHTML = `Steuerknüppel<small>iPhone als Steuerknüppel fürs iPad · ${FL.pad.label()}</small>`; };
+      FL.pad.onChange = plabel; plabel();
+    }
     const pair = FL.el('div', 'pair', '', box);
     const mute = btn(pair, '', '', () => { FL.save.muted = !FL.save.muted; FL.store(); label(); });
     const label = () => { mute.innerHTML = `Ton: ${FL.save.muted ? 'aus' : 'an'}${FL.native ? '' : '<small>Taste M</small>'}`; };
@@ -99,6 +104,32 @@
     if (!FL.native) FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
     FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) und bohmerang (CC BY-NC-SA) · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
     FL.onKey = code => { if (code === 'KeyM') label(); };
+  };
+
+  // ---------------------------------------------------------------- zweites Gerät als Steuerknüppel
+  const padPage = () => {
+    if (!A.backdrop || A.mode) toMenus();
+    const P = page('Steuerknüppel', () => { FL.pad.onChange = null; mainMenu(); }, 'Menü');
+    const box = FL.el('div', 'panel padpage', '', P.body);
+    const state = FL.el('p', 'padstate', '', box);
+    const row = FL.el('div', 'pair', '', box);
+    const host = btn(row, '', 'primary', () => {
+      if (FL.pad.role === 'host') { FL.pad.stop(); FL.save.padHost = false; } else { FL.pad.host(); FL.save.padHost = true; }
+      FL.store(); draw();
+    });
+    btn(row, 'Dieses Gerät ist der Steuerknüppel<small>auf dem iPhone antippen</small>', '', () => {
+      FL.save.padHost = false; FL.store();
+      FL.pad.onChange = null;
+      FL.pad.openController(padPage);
+    });
+    FL.el('p', '', 'Ein iPhone wird zum Steuerknüppel für das Spiel auf dem iPad. Im Kampfflugzeug steuerst du durch Neigen des iPhones, Schubhebel und Knöpfe liegen ebenfalls dort. Bei Treffern vibriert das iPhone.', box);
+    FL.el('p', 'muted', 'Auf beiden Geräten muss die App offen sein, WLAN oder Bluetooth eingeschaltet. Internet ist nicht nötig. Beim ersten Mal fragt das Gerät, ob die App Geräte im lokalen Netzwerk finden darf: bitte erlauben.', box);
+    const draw = () => {
+      const on = FL.pad.role === 'host';
+      host.innerHTML = on ? 'Steuerknüppel ausschalten<small>dieses Gerät spielt wieder allein</small>' : 'Hier wird gespielt<small>auf dem iPad antippen, dann das iPhone verbinden</small>';
+      state.textContent = on ? 'Steuerknüppel: ' + FL.pad.label() : '';
+    };
+    FL.pad.onChange = draw; draw();
   };
 
   // ---------------------------------------------------------------- Karriere
@@ -387,7 +418,7 @@
         if (A.mode.result) finish();
       }
       A.mode.stage.render();
-    } else if (A.backdrop) { A.backdrop.update(dt); A.backdrop.stage.render(); }
+    } else if (A.backdrop && !FL.pad.ctl) { A.backdrop.update(dt); A.backdrop.stage.render(); }
   };
   window.addEventListener('blur', () => { if (A.mode && !A.paused && !A.done) setPause(true); });
   window.addEventListener('error', e => {
@@ -405,6 +436,7 @@
       return;
     }
     mainMenu();
+    if (FL.save.padHost && FL.pad.available()) FL.pad.host();
     requestAnimationFrame(frame);
     // Die großen 3D-Modelle erst laden, wenn das Menü schon zu sehen ist
     requestAnimationFrame(() => setTimeout(() => FL.ext.load(), 400));

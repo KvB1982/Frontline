@@ -63,6 +63,13 @@
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Damit findet das Spiel ein iPhone in der Nähe, das als Steuerknüppel dient.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_frontlinie3._tcp</string>
+		<string>_frontlinie3._udp</string>
+	</array>
 	<key>UIStatusBarHidden</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>

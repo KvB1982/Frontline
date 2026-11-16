@@ -90,6 +90,7 @@
     if (e.beta === null || e.gamma === null || e.beta === undefined) return;
     const b = e.beta / DEG, g = e.gamma / DEG;
     const u = G.u = [-Math.cos(b) * Math.sin(g), Math.sin(b), Math.cos(b) * Math.cos(g)];
+    if (FL.pad && FL.pad.on) return;                                                  // ein verbundener Steuerknüppel hat Vorrang
     if (!G.u0 || G.needCal || G.land !== isLand()) calibrate();
     let s = onScreen(u, G.th);
     // lag das Gerät beim Kalibrieren flach, klärt sich die Drehung, sobald es angehoben wird
@@ -105,6 +106,7 @@
   };
   // Die aktuelle Haltung wird die neue Mitte.
   G.center = quiet => {
+    if (FL.pad && FL.pad.on) { FL.pad.send({ k: 'cal' }, true); G.turn = G.climb = 0; if (!quiet) FL.hud.msg('Kalibriert: Diese Haltung des iPhones ist jetzt die Mitte', '#46dcff', true); return; }
     if (G.u) calibrate(); else G.needCal = true;
     G.turn = G.climb = 0;
     if (!quiet) FL.hud.msg(G.u ? 'Kalibriert: Diese Haltung ist jetzt die Mitte' : 'Noch kein Signal vom Neigungssensor', G.u ? '#46dcff' : '#ef5a4c', true);
@@ -244,7 +246,7 @@
         FL.tilt.dot = FL.el('i', '', '', gauge);
         const draw = () => {
           const on = FL.tilt.on;
-          tog.textContent = 'Neigen: ' + (on ? 'an' : 'aus');
+          tog.textContent = FL.pad && FL.pad.on ? 'Steuerknüppel: iPhone' : 'Neigen: ' + (on ? 'an' : 'aus');
           tog.classList.toggle('on', on);
           mid.style.display = gauge.style.display = on ? '' : 'none';
           // am Boden (laufen, rollen) braucht man den Steuerknüppel, in der Luft ersetzt das Neigen ihn
@@ -254,11 +256,11 @@
           const lever = on && !!FL.tilt.cockpit;
           if (lever && !FL.throttle.on) setT(FL.tilt.air ? 0.62 : 0);
           FL.throttle.on = lever;
-          thr.style.display = lever ? '' : 'none';
+          thr.style.display = lever && !(FL.pad && FL.pad.on) ? '' : 'none';             // mit Steuerknüppel sitzt der Schubhebel auf dem iPhone
           thr.classList.toggle('high', !left.style.display);
         };
         FL.tilt.onChange = draw;
-        tog.addEventListener('click', () => { if (FL.tilt.on) FL.tilt.stop(true); else FL.tilt.start(true); });
+        tog.addEventListener('click', () => { if (FL.pad && FL.pad.on) return; if (FL.tilt.on) FL.tilt.stop(true); else FL.tilt.start(true); });
         mid.addEventListener('pointerdown', e => { e.preventDefault(); FL.tilt.center(); mid.classList.add('flash'); setTimeout(() => mid.classList.remove('flash'), 350); });
         draw();
         make(extra, 'Rolle ◀', 'KeyQ', 'small'); make(extra, 'Rolle ▶', 'KeyE', 'small');
