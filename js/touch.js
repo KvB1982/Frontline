@@ -109,11 +109,12 @@
   // Die Haltung beim Kalibrieren ist die Mitte. Von dort aus: wie ein Lenkrad nach links oder rechts drehen = Kurve,
   // Oberkante zu sich ziehen = Nase hoch, von sich weg kippen = Nase runter.
   const G = FL.tilt = { on: false, air: false, turn: 0, climb: 0, u: null, u0: null, th: null, sure: false, land: null, listening: false, onChange: null, dot: null };
-  const ROLL_FULL = 22, PITCH_FULL = 16, DEAD = 2.5, DEG = 180 / Math.PI;     // Grad für vollen Ausschlag, kleine Bewegungen zählen nicht
+  const ROLL_FULL = 27, PITCH_FULL = 20, DEAD = 2.5, SOFT = 1.3, DEG = 180 / Math.PI;     // Grad für vollen Ausschlag, kleine Bewegungen zählen nicht
+  // SOFT > 1 macht die Mitte ruhiger: Kleine Neigungen lenken nur sanft, der volle Ausschlag bleibt erreichbar.
   const curve = (deg, full) => {
     const a = Math.abs(deg);
     if (a < DEAD) return 0;
-    return Math.sign(deg) * Math.min(1, (a - DEAD) / (full - DEAD));
+    return Math.sign(deg) * Math.pow(Math.min(1, (a - DEAD) / (full - DEAD)), SOFT);
   };
   const wrapDeg = d => { while (d > 180) d -= 360; while (d < -180) d += 360; return d; };
   // Richtung "oben" vom Gerät aus gesehen, umgerechnet auf den gedrehten Bildschirm: [nach rechts, nach oben, aus dem Bildschirm heraus]
