@@ -134,7 +134,7 @@
       const a = FL.pick(this.dirs) + FL.rand(-0.42, 0.42), [x, z] = P(a, SPAWN_R + FL.rand(0, 8));
       const e = {
         kind, vehicle: !!d.vehicle, gun: d.gun, rate: d.rate, pts: d.pts, x, z, y: 0, a,
-        hp: Math.max(1, Math.round(d.hp * this.armor)), speed: d.speed * 1.15 * (1 + this.tier * 0.03) * FL.rand(0.9, 1.1),
+        hp: Math.max(1, Math.round(d.hp * this.armor)), speed: d.speed * (d.vehicle ? 0.72 : 0.82) * (1 + this.tier * 0.03) * FL.rand(0.9, 1.1),   // gemächlicher als früher: So bleibt Zeit zum Zielen
         stop: d.vehicle ? FL.rand(21, 27) : FL.rand(12.5, 18), fireCd: FL.rand(0.4, 2), drift: FL.rand(-0.25, 0.25), r: d.vehicle ? 2.4 : 0.9
       };
       e.max = e.hp;

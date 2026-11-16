@@ -117,7 +117,8 @@ Hier stellst du alles selbst ein: Art des Einsatzes (auch Flugzeug und Panzer), 
 
 | Einsatz | Tasten |
 | --- | --- |
-| Bodenkampf | ← → bewegen, Leertaste schießen, ↓ Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, X Geschütze abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie, V vorrücken |
+| Basis angreifen | ↑ ↓ laufen, ← → drehen, A D seitwärts gehen, Leertaste oder Mausklick schießen, C Deckung, E Kameraden aufhelfen oder Fahrzeuge reparieren, Q Befehl an den Trupp, X Geschützwagen abfeuern, T Geschütze an/aus, 1 2 3 4 Drohnen, Hubschrauber, Bomber, Artillerie |
+| Basis verteidigen | ← → umsehen, Leertaste schießen, ↓ Deckung, X Geschütze abfeuern, T Geschütze an/aus, 1 2 3 4 Unterstützung |
 | Kampfflugzeug | wie ein Steuerknüppel: ← → lenken, ↓ ziehen = Nase hoch, ↑ drücken = Nase runter, Leertaste Bordkanone, B Bombe, R Raketen, G Fahrwerk ein/aus, Umschalt halten = Nachbrenner |
 | Panzer | ↑ ↓ fahren, ← → lenken, A D Turm drehen, W Turm nach vorn, Leertaste Kanone, 1 2 3 4 Unterstützung anfordern: Drohnen, Hubschrauber, Bomber, Artillerie |
 | Immer | P oder Esc Pause, M Ton an/aus |
@@ -187,9 +188,20 @@ Die Verteidigung ist neu gebaut. Deine Basis liegt mitten auf einem offenen Feld
 - Die Gegner bleiben vor der Basis stehen und beschießen sie. Fällt der Balken „Basis“ auf null, ist der Einsatz verloren. Nach jeder Welle wird die Basis etwas ausgebessert.
 - Kameraden, MG-Nester, Panzer und Raketenwerfer schießen von selbst. X feuert die Geschütze, 1 bis 4 rufen Drohnen, Hubschrauber, Bomber (fliegt in deine Blickrichtung) und Artillerie.
 
-## Angriff: Trupp nach links oder rechts schicken
+## Basis angreifen: als Kommandant im freien Feld
 
-Beim Angriff verschiebt Q den Trupp nach links und R nach rechts (iPad: Knöpfe „Trupp ◀“ und „Trupp ▶“). Die Kameraden gehen dann seitlich nach vorn und schießen schräg über die Straße. Dieses Kreuzfeuer trifft härter, und an der gegnerischen Basis greifen sie die Türme und Mauern an der Seite an. Noch einmal in die Gegenrichtung drücken holt sie zurück in die Mitte.
+Beim Angriff steuerst du den Kommandanten als Figur und läufst frei durch das Gelände. Es gibt keine feste Linie mehr.
+
+- **Ziel:** Auf dem Weg zur gegnerischen Basis liegen Gebiete mit einer roten Fahne und einem gelben Ring am Boden. Sichere eines nach dem anderen: erst alle Gegner dort besiegen, dann in den Ring gehen. Die Fahne wird blau, dein Trupp wird geheilt, und es geht weiter. Am Ende zerstörst du alle Gebäude der Basis. Solange noch ein Gebiet fehlt, hält die Basis alles aus.
+- **Wohin?** Oben in der Mitte zeigt ein Pfeil mit Meterangabe zum nächsten Ziel, über dem Ziel schwebt ein Zielkreuz. Die runde Karte oben rechts zeigt Gebiete (gelber Ring), Gegner (rot) und deinen Trupp (blau).
+- **Dein Trupp** folgt dir lose und denkt selbst mit: Die Kameraden verteilen sich, suchen sich bei Feindkontakt Sandsäcke oder Felsen als Deckung und rücken abwechselnd vor, während die anderen Feuerschutz geben. Der Panzer bleibt zum Schießen stehen, der Raketenwerfer und die Geschützwagen halten sich weiter hinten.
+- **Befehle mit Q** (iPad: Knopf „Trupp“): „folgt dir“, „hält die Stellung“ (alle bleiben, wo sie sind, zum Beispiel als Feuerschutz, während du eine Flanke umgehst) und „stürmt vor“ (der Trupp geht vor dir auf das Ziel los).
+- **Deckung:** C halten (iPad: Knopf „Deckung“ oder nach unten wischen und halten). Hinter Sandsäcken oder Felsen prallen Kugeln ab, und du erholst dich schneller. Wer in Bewegung bleibt, wird seltener getroffen.
+- **Zielen:** Die Waffe rastet auf den Gegner ein, der am nächsten an deiner Blickrichtung liegt.
+- **Getroffene Kameraden** bleiben sitzen, bis du hingehst und E hältst. Nach einer Weile stehen sie auch von selbst wieder auf. Beschädigte Fahrzeuge reparierst du genauso.
+- **iPad:** Links der runde Steuerknüppel (vor und zurück laufen, links und rechts drehen), auf dem freien Bildschirm wischen dreht den Blick.
+
+Bei „Basis verteidigen“ bewegen sich die gegnerischen Soldaten und Fahrzeuge jetzt langsamer.
 
 ## Schiffe angreifen
 
