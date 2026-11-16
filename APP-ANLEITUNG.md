@@ -62,7 +62,7 @@ Das iPad zeigt das Spiel, das iPhone wird zum Steuerknüppel. Im Kampfflugzeug s
 5. Beim ersten Mal fragen beide Geräte, ob die App Geräte im lokalen Netzwerk finden darf. Bitte erlauben.
 6. Sobald auf dem iPhone „Verbunden“ steht, auf dem iPad einen Flugeinsatz starten.
 
-Auf dem iPhone: quer halten wie ein Lenkrad. Drehen fliegt Kurven, kippen zieht hoch oder drückt runter. Links ist der Schubhebel, rechts sind Feuer, Bombe, Rakete, Fahrwerk, Klappen, Rolle und Pause. „Kalibrieren“ macht die aktuelle Haltung zur Mitte. Am Boden (laufen, rollen) wirkt das Neigen wie der runde Steuerknüppel. Bei Treffern vibriert das iPhone.
+Auf dem iPhone: quer halten wie ein Lenkrad. Drehen fliegt Kurven, kippen zieht hoch oder drückt runter. Links ist der Schubhebel, rechts sind Feuer, Bombe, Rakete, Fahrwerk, Klappen, Rolle und Pause. „Kalibrieren“ macht die aktuelle Haltung zur Mitte. Darunter stellst du die Empfindlichkeit in fünf Stufen ein: Tippen schaltet weiter, Stufe 1 reagiert am ruhigsten, Stufe 5 am stärksten. Am Boden (laufen, rollen) wirkt das Neigen wie der runde Steuerknüppel. Bei Treffern vibriert das iPhone.
 
 Geht die Verbindung verloren, hält das Spiel an. Das iPad merkt sich die Einstellung und wartet beim nächsten Start wieder auf das iPhone.
 

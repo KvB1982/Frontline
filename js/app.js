@@ -168,7 +168,7 @@
     let armed = false;
     const reset = btn(P.foot, 'Karriere neu beginnen', 'small', () => {
       if (!armed) { armed = true; reset.innerHTML = 'Wirklich alles löschen? Nochmal klicken'; return; }
-      const keep = { muted: FL.save.muted, manual: FL.save.manual };
+      const keep = { muted: FL.save.muted, manual: FL.save.manual, tiltSens: FL.save.tiltSens };
       FL.save = Object.assign(FL.defaultSave(), keep); FL.store();
       toMenus(); careerPage();
     });
