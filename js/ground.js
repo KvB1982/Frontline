@@ -31,7 +31,7 @@
 
   FL.GroundBattle = class {
     constructor(cfg, lo) {
-      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.zoomable = true; this.role = cfg.role || 'commander';
+      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.zoomable = true; this.zoomMin = 0.13; this.bodyTh = 0; this.role = cfg.role || 'commander';
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
       this.nSec = Math.max(1, cfg.sections || 2);
       this.armor = 1 + 0.35 * this.tier;
@@ -780,11 +780,11 @@
       const cam = this.stage.camera, ray = this.ray || (this.ray = new THREE.Raycaster());
       cam.updateMatrixWorld();
       ray.setFromCamera(new THREE.Vector2(cx / window.innerWidth * 2 - 1, 1 - cy / window.innerHeight * 2), cam);
-      ray.far = 170;
+      ray.far = 700;
       const hit = ray.intersectObject(this.terrain, false)[0];
       if (!hit) return;
       // sehr weit entfernte Punkte (Tipp nahe am Horizont) auf eine vernünftige Strecke kürzen
-      const h = this.hero, dx = hit.point.x - h.x, dz = hit.point.z - h.z, d = Math.hypot(dx, dz), k = Math.min(1, 90 / (d || 1));
+      const h = this.hero, dx = hit.point.x - h.x, dz = hit.point.z - h.z, d = Math.hypot(dx, dz), k = Math.min(1, FL.clamp(90 / FL.touch.zoom, 90, 240) / (d || 1));
       this.goTo(h.x + dx * k, h.z + dz * k);
     }
     goTo(x, z) {
@@ -807,7 +807,7 @@
       const turn = active ? FL.clamp((FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) - FL.stick.x, -1, 1) : 0;
       const sw = active ? FL.touch.swipe : 0; FL.touch.swipe = 0;
       if (turn || sw) this.manualAim = true;
-      h.th = wrap(h.th + turn * 2.3 * dt - sw * 0.0052);
+      h.th = wrap(h.th + turn * 2.5 * dt - sw * 0.007);
       let fwd = 0, side = 0, mvx = 0, mvz = 0;
       if (active) {
         fwd = (FL.down('ArrowUp', 'KeyW') ? 1 : 0) - (FL.down('ArrowDown', 'KeyS') ? 1 : 0);
@@ -818,8 +818,8 @@
       if (fwd || side) {
         // am Rechner geht auch Laufen mit den Tasten
         this.dest = null;
-        const s = Math.sin(h.th), c = Math.cos(h.th), v = fwd > 0 ? 6.2 : 4 * fwd;
-        mvx = s * v - c * side * 4.4; mvz = c * v + s * side * 4.4;
+        const s = Math.sin(h.th), c = Math.cos(h.th), v = fwd > 0 ? 9.2 : 5 * fwd;
+        mvx = s * v - c * side * 6.5; mvz = c * v + s * side * 6.5;
       } else if (active && this.dest) {
         // Liegt ein Zaun dazwischen, geht es erst durch das nächste Tor
         if (!this.via && this.viaHold <= 0) { const g = this.gapFor(h.x, h.z, this.dest.x, this.dest.z); if (g) this.via = { x: g[0], z: g[1] }; }
@@ -828,7 +828,7 @@
         else if (!this.via && d < 0.3) this.dest = null;
         else {
           // nach vorn am schnellsten, seitwärts und rückwärts etwas langsamer
-          const rel = Math.abs(wrap(Math.atan2(dx, dz) - h.th)), v = Math.min(d / dt, 6.4 - 1.5 * smooth(0.9, 2.4, rel));
+          const rel = Math.abs(wrap(Math.atan2(dx, dz) - h.th)), v = Math.min(d / dt, 9.6 - 1.6 * smooth(0.9, 2.4, rel));
           const [ux, uz] = this.dodge(h, dx, dz, d, this.stuckT > 0.12, dt);           // hängt er an einem Hindernis, läuft er seitlich daran vorbei
           mvx = ux * v; mvz = uz * v;
         }
@@ -863,18 +863,15 @@
       for (const e of this.enemies) if (!e.dead) consider(e, e.r, Math.hypot(e.x - h.x, e.z - h.z), 0);
       if (this.baseActive()) for (const s of this.structures) if (s.alive && s.key) consider(s, s.r * 0.6, Math.max(1, Math.hypot(s.x - h.x, s.z - h.z) - s.r * 0.6), 14);
       this.lock = lock;
-      // Lässt man den Steuerknüppel los, dreht sich der Kommandant von selbst genau auf das Ziel.
-      // Ohne Ziel schaut er beim Laufen nach vorn, solange man nicht selbst gedreht hat.
-      if (active && !turn && !sw) {
-        let want = null, rate = 2.6;
-        if (lock) want = Math.atan2(lock.x - h.x, lock.z - h.z);
-        else if (h.moving && !this.manualAim && (mvx || mvz)) { want = Math.atan2(mvx, mvz); rate = 3.2; }
-        if (want !== null) h.th = wrap(h.th + FL.clamp(wrap(want - h.th), -rate * dt, rate * dt));
-      }
+      // Die Blickrichtung (und damit die Kamera) dreht nur der Spieler selbst, per Steuerknüppel oder Wischen. Beim Laufen zu einem
+      // angetippten Punkt dreht sich nichts von allein. Nur die Figur wendet den Körper zum eingerasteten Ziel, die Kamera bleibt.
+      const bodyWant = lock ? Math.atan2(lock.x - h.x, lock.z - h.z) : h.th;
+      this.bodyTh = wrap(this.bodyTh + FL.clamp(wrap(bodyWant - this.bodyTh), -9 * dt, 9 * dt));
       const s = Math.sin(h.th), c = Math.cos(h.th), hy = this.gy(h.x, h.z), gunY = hy + (this.ducking ? 1.0 : 1.3);
-      this.place(h.mesh, h.x, h.z, h.th);
+      this.place(h.mesh, h.x, h.z, this.bodyTh);
       h.mesh.visible = this.invuln <= 0 || Math.floor(this.t * 12) % 2 === 0;
-      FL.animSoldier(h.mesh, this.t, h.moving, this.ducking, true);          // geduckt rennen
+      FL.animSoldier(h.mesh, this.t * 1.35, h.moving, this.ducking, true);   // geduckt rennen
+      if (h.moving && sp > 6 && Math.random() < dt * 9) this.fx.puff('dust', h.x, hy + 0.15, h.z, 0.8, 0.45, 0, 0.8, 0, 1.6);
 
       let tx = h.x + s * 70, tz = h.z + c * 70, ty;
       if (lock) {
@@ -943,7 +940,7 @@
         const wait = a.threat && goalD < 16 && goalD > 1 && (i + Math.floor(this.t / 2.4)) % 2 === 0;
         a.moving = active && d > (a.moving ? 0.4 : 1.6) && !wait;
         if (a.moving) {
-          const v = Math.min(d / dt, far > 40 ? 8.5 : goalD > 9 ? 7 : a.threat ? 4.8 : 5.6);
+          const v = Math.min(d / dt, far > 40 ? 11.5 : goalD > 9 ? 9.5 : a.threat ? 5.4 : 6.6);
           const [ux, uz] = this.dodge(a, dx, dz, d, a.stuck > 0.25, dt);
           a.x += ux * v * dt; a.z += uz * v * dt;
           for (const o of this.own) if (o !== a && !isVeh(o)) { const ex = a.x - o.x, ez = a.z - o.z, e = Math.hypot(ex, ez); if (e < 1.1 && e > 0.01) { a.x += ex / e * (1.1 - e) * 0.5; a.z += ez / e * (1.1 - e) * 0.5; } }
@@ -1000,7 +997,7 @@
         if (v.moving) {
           const want = Math.atan2(dx, dz), diff = wrap(want - v.th);
           v.th = wrap(v.th + FL.clamp(diff, -1.3 * dt, 1.3 * dt));
-          const sp = (v.kind === 'tank' ? 6.4 : 5.8) * (Math.abs(diff) < 0.5 ? 1 : Math.abs(diff) < 1.2 ? 0.45 : 0.1) * (d > 30 ? 1.35 : 1);
+          const sp = (v.kind === 'tank' ? 6.4 : 5.8) * (Math.abs(diff) < 0.5 ? 1 : Math.abs(diff) < 1.2 ? 0.45 : 0.1) * (d > 30 ? 1.7 : d > 14 ? 1.3 : 1);
           v.x += Math.sin(v.th) * sp * dt; v.z += Math.cos(v.th) * sp * dt;
           this.pushOut(v, 2.3, true);                                  // Zäune fährt es einfach um
           for (const o of this.vehicles) if (o !== v) { const ex = v.x - o.x, ez = v.z - o.z, e = Math.hypot(ex, ez); if (e < 6 && e > 0.01) { v.x = o.x + ex / e * 6; v.z = o.z + ez / e * 6; } }
@@ -1371,10 +1368,10 @@
       this.camY += (this.gy(h.x, h.z) - this.camY) * (1 - Math.exp(-7 * dt));
       const s = Math.sin(this.camTh), c = Math.cos(this.camTh), sh = this.shake > 0 ? this.shake * 1.1 : 0;
       FL.touch.wheelZoom();
-      const k = FL.touch.view(cam);                                 // Zoom: zwei Finger oder Mausrad
+      const k = FL.touch.view(cam);                                 // Zoom: zwei Finger oder Mausrad. Weit herausgezoomt schaut die Kamera steiler von oben.
       const cx = h.x - s * 8.6 * k, cz = h.z - c * 8.6 * k;
       // die Kamera bleibt über dem Boden, auch wenn hinter dem Kommandanten ein Hügel liegt
-      cam.position.set(cx + FL.rand(-sh, sh), Math.max(this.camY + 5.4 * k, this.gy(cx, cz) + 2) + FL.rand(-sh, sh), cz);
+      cam.position.set(cx + FL.rand(-sh, sh), Math.max(this.camY + 5.4 * k * (1 + 0.6 * smooth(1.5, 6, k)), this.gy(cx, cz) + 2) + FL.rand(-sh, sh), cz);
       cam.lookAt(h.x + s * 15, this.camY + 1.5, h.z + c * 15);
       this.stage.update(new THREE.Vector3(h.x + s * 14, this.camY, h.z + c * 14));
     }

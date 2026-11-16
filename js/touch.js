@@ -27,6 +27,8 @@
   // zusammenschieben zeigt mehr Überblick. Solange zwei Finger auf dem freien Bildschirm liegen, ruht das Wischen.
   T.zoom = 1;
   const ZMIN = 0.4, ZMAX = 2.5;
+  // Ein Einsatz kann mit zoomMin erlauben, noch weiter herauszuzoomen (der Angriff für mehr Überblick)
+  const zmin = () => (FL.app && FL.app.mode && FL.app.mode.zoomMin) || ZMIN;
   const Z = { pts: new Map(), eat: new Set(), on: false, d0: 1, z0: 1, fake: false };
   const zoomable = () => !!(FL.app && FL.app.mode && FL.app.mode.zoomable && !FL.app.paused && !FL.app.done);
   const spread = () => { const [a, b] = [...Z.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
@@ -49,7 +51,7 @@
     p.x = e.clientX; p.y = e.clientY;
     if (!Z.eat.has(e.pointerId)) return;
     e.stopPropagation();
-    if (Z.on && Z.pts.size === 2) T.zoom = FL.clamp(Z.z0 * spread() / Z.d0, ZMIN, ZMAX);
+    if (Z.on && Z.pts.size === 2) T.zoom = FL.clamp(Z.z0 * spread() / Z.d0, zmin(), ZMAX);
   }, true);
   const zoomEnd = e => {
     if (Z.fake || !Z.pts.has(e.pointerId)) return;
@@ -59,7 +61,7 @@
   document.addEventListener('pointerup', zoomEnd, true);
   document.addEventListener('pointercancel', zoomEnd, true);
   // Mausrad am Rechner (nur wo es nicht schon etwas anderes tut)
-  T.wheelZoom = () => { if (FL.wheel) { T.zoom = FL.clamp(T.zoom * Math.exp(-FL.wheel * 0.0012), ZMIN, ZMAX); FL.wheel = 0; } };
+  T.wheelZoom = () => { if (FL.wheel) { T.zoom = FL.clamp(T.zoom * Math.exp(-FL.wheel * 0.0012), zmin(), ZMAX); FL.wheel = 0; } };
   // Stellt die Kamera auf den Zoom ein. Heranholen verengt den Blickwinkel, für den Überblick geht die Kamera zurück und höher:
   // Der Rückgabewert ist der Faktor für Abstand und Höhe.
   T.view = cam => {
