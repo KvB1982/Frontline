@@ -18,6 +18,8 @@ Die Fahrzeuge und Flugzeuge stammen von Sketchfab. Für das Spiel wurden sie ver
 | Wachtürme | [Game Ready Military Base Asset Pack](https://sketchfab.com/3d-models/game-ready-military-base-asset-pack-47c0a32b43bf42abbb743458fbd95114) | [Oxygen3D](https://sketchfab.com/oxygen3d) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Eigenes Flugzeug und Kampfbomber | [Eurofighter Typhoon - Fighter Jet - Free](https://sketchfab.com/3d-models/eurofighter-typhoon-fighter-jet-free-992bcc8987964ca09d55410330aa8579) | [bohmerang](https://sketchfab.com/bohmerang) | [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) |
 
+Der eigene Soldat (`models/soldat.js`) und der Geschützwagen (`models/spg.js`) wurden mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel aufbereitet.
+
 Wichtig: Der Eurofighter darf nur nicht-kommerziell genutzt werden. Für das kostenlose Spiel ist das in Ordnung. Vor einer bezahlten Veröffentlichung (zum Beispiel im App Store) muss er gegen ein anderes Modell getauscht werden. Die verkleinerte Fassung in `models/jet.js` steht wie das Original unter CC BY-NC-SA 4.0.
 
 ## Geräusche
