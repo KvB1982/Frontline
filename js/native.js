@@ -15,6 +15,7 @@
     if (now - last < 70) return;
     last = now;
     try { const p = H.impact({ style }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    if (FL.pad && FL.pad.on) FL.pad.send({ k: 'b', s: style }, false);                // das iPhone als Steuerknüppel vibriert mit
   };
   FL.haptic = buzz;
   const FEEL = { hit: 'LIGHT', pop: 'LIGHT', cannon: 'MEDIUM', boom: 'MEDIUM', bigboom: 'HEAVY', ouch: 'HEAVY' };

@@ -222,3 +222,35 @@ body.touch .bombcam { top: 150px; left: calc(10px + env(safe-area-inset-left)); 
 #boot .boot-title { font-size: clamp(34px, 7vw, 76px); font-weight: 800; letter-spacing: 0.08em; }
 #boot .boot-sub { font-size: 18px; opacity: 0.7; animation: bootpulse 1.2s ease-in-out infinite alternate; }
 @keyframes bootpulse { from { opacity: 0.35; } to { opacity: 0.9; } }
+
+/* Steuerknüppel: Seite im Menü und der Bildschirm auf dem iPhone */
+.padpage p { margin: 0 0 12px; line-height: 1.45; }
+.padstate { color: var(--cyan); font-weight: 700; min-height: 1.4em; }
+.padctl { position: fixed; inset: 0; z-index: 60; background: #0b1015; color: #fff; font-family: var(--font); touch-action: none; user-select: none; -webkit-user-select: none; }
+.pc-status { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--gold); padding: 0 150px; }
+.padctl.live .pc-status { color: var(--cyan); }
+.pc-chip { padding: 9px 14px; border-radius: 999px; background: rgba(20, 30, 40, 0.8); border: 2px solid rgba(220, 235, 245, 0.45); font-weight: 700; font-size: 14px; }
+.pc-close { position: absolute; top: calc(8px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); }
+.pc-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 12px; width: 210px; text-align: center; }
+.pc-gauge { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(220, 235, 245, 0.45); position: relative; }
+.pc-gauge i { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px; border-radius: 50%; background: var(--cyan); }
+.pc-cal { border-color: var(--gold); color: var(--gold); padding: 12px 20px; font-size: 16px; }
+.pc-cal.flash { background: var(--gold); color: #111; }
+.pc-help { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.pc-thr { position: absolute; left: calc(22px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 78px; border-radius: 18px; background: rgba(20, 30, 40, 0.8); border: 2px solid rgba(220, 235, 245, 0.45); }
+.pc-thr span { position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 800; color: var(--orange); }
+.pc-thr i { position: absolute; left: 10px; right: 10px; bottom: 14px; border-radius: 8px; background: rgba(70, 220, 255, 0.35); }
+.pc-thr b { position: absolute; left: 4px; right: 4px; height: 28px; margin-bottom: -14px; border-radius: 10px; background: #dfe8ee; }
+.pc-thr.ab i { background: rgba(255, 150, 40, 0.6); }
+.pc-thr em { position: absolute; left: -10px; right: -10px; bottom: -24px; text-align: center; font-size: 12px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.pc-right { position: absolute; right: calc(18px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, auto); gap: 10px; align-items: end; justify-items: end; }
+.pc-btn { display: flex; align-items: center; justify-content: center; width: 64px; height: 56px; border-radius: 18px; background: rgba(40, 55, 70, 0.9); border: 2px solid rgba(220, 235, 245, 0.45); font-weight: 800; font-size: 12px; text-align: center; }
+.pc-btn.on { background: rgba(255, 196, 60, 0.6); border-color: #fff; transform: scale(0.95); }
+.pc-btn.cyan { border-color: var(--cyan); }
+.pc-btn.orange { border-color: var(--orange); }
+.pc-btn.bomb { grid-column: 1; width: 64px; height: 84px; background: rgba(200, 150, 30, 0.7); }
+.pc-btn.fire { grid-column: 2 / span 2; width: 138px; height: 84px; font-size: 20px; background: rgba(200, 50, 40, 0.7); border-color: rgba(255, 200, 190, 0.8); }
+.padpage { padding: 18px 20px; max-width: 820px; margin: 0 auto; }
+.padpage .pair { display: flex; gap: 12px; flex-wrap: wrap; }
+.padpage .btn { flex: 1 1 280px; text-align: left; }
+.padpage .btn small { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; opacity: 0.8; }
