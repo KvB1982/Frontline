@@ -109,12 +109,20 @@
   // Die Haltung beim Kalibrieren ist die Mitte. Von dort aus: wie ein Lenkrad nach links oder rechts drehen = Kurve,
   // Oberkante zu sich ziehen = Nase hoch, von sich weg kippen = Nase runter.
   const G = FL.tilt = { on: false, air: false, turn: 0, climb: 0, u: null, u0: null, th: null, sure: false, land: null, listening: false, onChange: null, dot: null };
-  const ROLL_FULL = 22, PITCH_FULL = 16, DEAD = 2.5, DEG = 180 / Math.PI;     // Grad für vollen Ausschlag, kleine Bewegungen zählen nicht
+  const ROLL_FULL = 27, PITCH_FULL = 20, DEAD = 2.5, SOFT = 1.3, DEG = 180 / Math.PI;     // Grad für vollen Ausschlag, kleine Bewegungen zählen nicht
+  // SOFT > 1 macht die Mitte ruhiger: Kleine Neigungen lenken nur sanft, der volle Ausschlag bleibt erreichbar.
   const curve = (deg, full) => {
     const a = Math.abs(deg);
     if (a < DEAD) return 0;
-    return Math.sign(deg) * Math.min(1, (a - DEAD) / (full - DEAD));
+    return Math.sign(deg) * Math.pow(Math.min(1, (a - DEAD) / (full * sensF() - DEAD)), SOFT);
   };
+  // Empfindlichkeit in fünf Stufen (gespeichert auf dem Gerät, das geneigt wird). Stufe 3 ist der Standard,
+  // niedrigere Stufen brauchen mehr Neigung für denselben Ausschlag, höhere weniger.
+  const SENS = [1.6, 1.3, 1, 0.8, 0.65];
+  const sensN = () => { const n = FL.save.tiltSens | 0; return n >= 1 && n <= SENS.length ? n : 3; };
+  const sensF = () => SENS[sensN() - 1];
+  G.sensText = () => 'Empfindlichkeit ' + sensN() + '/' + SENS.length;
+  G.nextSens = () => { FL.save.tiltSens = sensN() % SENS.length + 1; FL.store(); return G.sensText(); };
   const wrapDeg = d => { while (d > 180) d -= 360; while (d < -180) d += 360; return d; };
   // Richtung "oben" vom Gerät aus gesehen, umgerechnet auf den gedrehten Bildschirm: [nach rechts, nach oben, aus dem Bildschirm heraus]
   const onScreen = (u, th) => [u[0] * Math.cos(th) - u[1] * Math.sin(th), u[0] * Math.sin(th) + u[1] * Math.cos(th), u[2]];
@@ -288,6 +296,7 @@
         // Neigungssteuerung: an/aus und Mittelstellung neu setzen
         const bar = FL.el('div', 'ttilt', '', L);
         const tog = FL.el('div', 'tchip', '', bar), mid = FL.el('div', 'tchip cal', 'Kalibrieren', bar);
+        const sens = FL.el('div', 'tchip', '', bar);
         const gauge = FL.el('div', 'tgauge', '', bar);
         FL.tilt.dot = FL.el('i', '', '', gauge);
         const draw = () => {
@@ -295,6 +304,9 @@
           tog.textContent = FL.pad && FL.pad.on ? 'Steuerknüppel: iPhone' : 'Neigen: ' + (on ? 'an' : 'aus');
           tog.classList.toggle('on', on);
           mid.style.display = gauge.style.display = on ? '' : 'none';
+          // mit iPhone als Steuerknüppel wird die Empfindlichkeit dort eingestellt
+          sens.style.display = on && !(FL.pad && FL.pad.on) ? '' : 'none';
+          sens.textContent = FL.tilt.sensText();
           // am Boden (laufen, rollen) braucht man den Steuerknüppel, in der Luft ersetzt das Neigen ihn
           left.style.display = on && FL.tilt.air ? 'none' : '';
           if (left.style.display) FL.stick.x = FL.stick.y = 0;
@@ -307,6 +319,7 @@
         };
         FL.tilt.onChange = draw;
         tog.addEventListener('click', () => { if (FL.pad && FL.pad.on) return; if (FL.tilt.on) FL.tilt.stop(true); else FL.tilt.start(true); });
+        sens.addEventListener('click', () => { sens.textContent = FL.tilt.nextSens(); });
         mid.addEventListener('pointerdown', e => { e.preventDefault(); FL.tilt.center(); mid.classList.add('flash'); setTimeout(() => mid.classList.remove('flash'), 350); });
         draw();
         make(extra, 'Rolle ◀', 'KeyQ', 'small'); make(extra, 'Rolle ▶', 'KeyE', 'small');

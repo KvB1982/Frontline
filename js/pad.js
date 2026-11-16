@@ -57,6 +57,8 @@
     const mid = FL.el('div', 'pc-mid', '', root);
     const gauge = FL.el('div', 'pc-gauge', '<i></i>', mid), dot = gauge.querySelector('i');
     const cal = FL.el('div', 'pc-chip pc-cal', 'Kalibrieren', mid);
+    const sens = FL.el('div', 'pc-chip', G.sensText(), mid);
+    sens.addEventListener('click', () => { sens.textContent = G.nextSens(); if (FL.haptic) FL.haptic('LIGHT'); });
     FL.el('div', 'pc-help', 'iPhone quer halten wie ein Lenkrad.<br>Drehen = Kurve, kippen = hoch und runter.', mid);
     // Schubhebel links
     const thr = FL.el('div', 'pc-thr', '<span>NB</span><i></i><b></b><em></em>', root);
