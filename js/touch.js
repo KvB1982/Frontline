@@ -21,6 +21,52 @@
   window.addEventListener('touchend', () => FL.audio.unlock(), { passive: true });
   // kein Zoomen und kein Verschieben der Seite mitten im Spiel
   document.addEventListener('gesturestart', e => e.preventDefault());
+
+  // ---------------------------------------------------------------- Zoomen mit zwei Fingern (wie bei Fotos)
+  // Gilt in jedem Einsatz, der zoomable = true setzt (Angriff, Verteidigung, Panzer). Finger auseinanderziehen holt das Bild heran,
+  // zusammenschieben zeigt mehr Überblick. Solange zwei Finger auf dem freien Bildschirm liegen, ruht das Wischen.
+  T.zoom = 1;
+  const ZMIN = 0.4, ZMAX = 2.5;
+  const Z = { pts: new Map(), eat: new Set(), on: false, d0: 1, z0: 1, fake: false };
+  const zoomable = () => !!(FL.app && FL.app.mode && FL.app.mode.zoomable && !FL.app.paused && !FL.app.done);
+  const spread = () => { const [a, b] = [...Z.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+  document.addEventListener('pointerdown', e => {
+    if (Z.fake || e.pointerType !== 'touch' || !e.target.classList || !e.target.classList.contains('tswipe') || !zoomable()) return;
+    if (Z.pts.size >= 2) { e.stopPropagation(); return; }
+    Z.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (Z.pts.size < 2) return;
+    // zweiter Finger: Das Wischen des ersten endet (ohne Schuss), ab jetzt gehören beide Finger dem Zoom
+    e.stopPropagation();
+    for (const id of Z.pts.keys()) {
+      if (id !== e.pointerId && !Z.eat.has(id)) { Z.fake = true; try { e.target.dispatchEvent(new PointerEvent('pointercancel', { pointerId: id, pointerType: 'touch', bubbles: true })); } catch (err) {} Z.fake = false; }
+      Z.eat.add(id);
+    }
+    Z.on = true; Z.d0 = spread(); Z.z0 = T.zoom;
+  }, true);
+  document.addEventListener('pointermove', e => {
+    const p = Z.pts.get(e.pointerId);
+    if (!p) return;
+    p.x = e.clientX; p.y = e.clientY;
+    if (!Z.eat.has(e.pointerId)) return;
+    e.stopPropagation();
+    if (Z.on && Z.pts.size === 2) T.zoom = FL.clamp(Z.z0 * spread() / Z.d0, ZMIN, ZMAX);
+  }, true);
+  const zoomEnd = e => {
+    if (Z.fake || !Z.pts.has(e.pointerId)) return;
+    Z.pts.delete(e.pointerId); Z.on = false;
+    if (Z.eat.delete(e.pointerId)) e.stopPropagation();
+  };
+  document.addEventListener('pointerup', zoomEnd, true);
+  document.addEventListener('pointercancel', zoomEnd, true);
+  // Mausrad am Rechner (nur wo es nicht schon etwas anderes tut)
+  T.wheelZoom = () => { if (FL.wheel) { T.zoom = FL.clamp(T.zoom * Math.exp(-FL.wheel * 0.0012), ZMIN, ZMAX); FL.wheel = 0; } };
+  // Stellt die Kamera auf den Zoom ein. Heranholen verengt den Blickwinkel, für den Überblick geht die Kamera zurück und höher:
+  // Der Rückgabewert ist der Faktor für Abstand und Höhe.
+  T.view = cam => {
+    const z = T.zoom, f0 = cam.userData.fov0 || (cam.userData.fov0 = cam.fov), fov = z > 1 ? f0 / z : f0;
+    if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
+    return z < 1 ? 1 / z : 1;
+  };
   document.addEventListener('dblclick', e => e.preventDefault());
   document.addEventListener('contextmenu', e => { if (T.active) e.preventDefault(); });
 
@@ -325,6 +371,7 @@
     T.pending = null;
     if (T.endSwipe) { T.endSwipe(); T.endSwipe = null; }
     T.swipe = 0; T.turret = 0; T.elev = 0; T.fire = false; T.heliX = 0; T.heliY = 0;
+    T.zoom = 1; Z.pts.clear(); Z.eat.clear(); Z.on = false;
     FL.tilt.onChange = null; FL.tilt.dot = null;
     FL.stick.x = FL.stick.y = 0;
     FL.throttle.on = false; FL.throttle.v = 0;

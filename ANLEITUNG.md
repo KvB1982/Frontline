@@ -199,6 +199,7 @@ Beim Angriff steuerst du den Kommandanten als Figur und läufst frei durch das G
 - **Deckung:** C halten (iPad: Knopf „Deckung“ oder nach unten wischen und halten). Hinter Sandsäcken oder Felsen prallen Kugeln ab, und du erholst dich schneller. Wer in Bewegung bleibt, wird seltener getroffen.
 - **Zielen:** Die Waffe rastet auf den Gegner ein, der am nächsten an deiner Blickrichtung liegt.
 - **Getroffene Kameraden** bleiben sitzen, bis du hingehst und E hältst. Nach einer Weile stehen sie auch von selbst wieder auf. Beschädigte Fahrzeuge reparierst du genauso.
+- **Zoomen:** Auf dem iPad mit zwei Fingern wie bei Fotos: auseinanderziehen holt das Bild heran, zusammenschieben zeigt mehr Überblick. Das geht beim Angriff, bei der Verteidigung und im Panzer. Am Rechner zoomt bei Angriff und Verteidigung das Mausrad.
 - **iPad:** Links der runde Steuerknüppel (vor und zurück laufen, links und rechts drehen), auf dem freien Bildschirm wischen dreht den Blick.
 
 Bei „Basis verteidigen“ bewegen sich die gegnerischen Soldaten und Fahrzeuge jetzt langsamer.

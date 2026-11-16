@@ -23,7 +23,7 @@
 
   FL.GroundBattle = class {
     constructor(cfg, lo) {
-      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.role = cfg.role || 'commander';
+      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.zoomable = true; this.role = cfg.role || 'commander';
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
       this.nSec = Math.max(1, cfg.sections || 2);
       this.armor = 1 + 0.35 * this.tier;
@@ -190,7 +190,7 @@
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       this.hBC = FL.hud.box('hud-bc');
-      FL.hud.box('hud-bl').innerHTML = '↑ ↓ laufen · ← → drehen · A D seitwärts · Leertaste oder Mausklick schießen · C Deckung · E aufhelfen · Q Befehl an den Trupp · X Geschütze · 1 2 3 4 Unterstützung · P Pause';
+      FL.hud.box('hud-bl').innerHTML = '↑ ↓ laufen · ← → drehen · A D seitwärts · Leertaste oder Mausklick schießen · C Deckung · Mausrad Zoom · E aufhelfen · Q Befehl an den Trupp · X Geschütze · 1 2 3 4 Unterstützung · P Pause';
       this.hCover = FL.el('div', 'cover-note', 'IN DECKUNG', FL.hud.root);
     }
 
@@ -873,7 +873,9 @@
       const cam = this.stage.camera, h = this.hero;
       this.camTh += wrap(h.th - this.camTh) * (1 - Math.exp(-9 * dt));
       const s = Math.sin(this.camTh), c = Math.cos(this.camTh), sh = this.shake > 0 ? this.shake * 1.1 : 0;
-      cam.position.set(h.x - s * 8.6 + FL.rand(-sh, sh), 5.4 + FL.rand(-sh, sh), h.z - c * 8.6);
+      FL.touch.wheelZoom();
+      const k = FL.touch.view(cam);                                 // Zoom: zwei Finger oder Mausrad
+      cam.position.set(h.x - s * 8.6 * k + FL.rand(-sh, sh), 5.4 * k + FL.rand(-sh, sh), h.z - c * 8.6 * k);
       cam.lookAt(h.x + s * 15, 1.5, h.z + c * 15);
       this.stage.update(new THREE.Vector3(h.x + s * 14, 0, h.z + c * 14));
     }

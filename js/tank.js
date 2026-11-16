@@ -8,7 +8,7 @@
 
   FL.TankMission = class {
     constructor(cfg, lo) {
-      this.cfg = cfg; this.lo = lo; this.result = null;
+      this.cfg = cfg; this.lo = lo; this.result = null; this.zoomable = true;
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
       // sc = Besonderheiten eines Sondereinsatzes, pw = wie stark der eigene Panzer ausgebaut ist (0 bis 1): Der Gegner hält dagegen
       const sc = this.sc = cfg.sc || {};
@@ -479,7 +479,8 @@
       const cam = this.stage.camera, ath = this.th + this.tu;
       this.camTh += wrap(ath - this.camTh) * (1 - Math.exp(-5 * dt));
       const sin = Math.sin(this.camTh), cos = Math.cos(this.camTh), sh = this.shake;
-      cam.position.set(this.x - sin * 15 + FL.rand(-sh, sh), 7.6 + FL.rand(-sh, sh), this.z - cos * 15);
+      const k = FL.touch.view(cam);                                 // Zoom mit zwei Fingern (das Mausrad stellt hier die Kanone)
+      cam.position.set(this.x - sin * 15 * k + FL.rand(-sh, sh), 7.6 * k + FL.rand(-sh, sh), this.z - cos * 15 * k);
       cam.lookAt(this.x + sin * 20, 1.5, this.z + cos * 20);
       this.stage.update(new THREE.Vector3(this.x + sin * 25, 0, this.z + cos * 25));
     }
