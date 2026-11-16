@@ -15,6 +15,7 @@
   const smooth = (a, b, v) => { const k = FL.clamp((v - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
   const ZONE_R = 17, STEP = 78, FIRST = 62, EDGE = 88;
   const BASE_W = 47, BASE_D = 70, LEVEL = 0.7;                       // halbe Breite und Tiefe der gegnerischen Basis, Höhe ihres ebenen Platzes
+  const PITCH_UP = 1.4, PITCH_DOWN = -1.35;                           // freier Blick: fast senkrecht in den Himmel und fast senkrecht nach unten
   const ALLY_SLOT = [[3.5, 2.5], [-3.5, 2.5], [7.5, 4.5], [-7.5, 4.5], [11.5, 7], [-11.5, 7]];      // [seitlich, dahinter]
   const GROUP_SLOT = [[0, 0], [3.5, 2], [-3.5, 2], [7, 4], [-7, 4], [0, 5], [10.5, 6], [-10.5, 6]]; // Plätze in einer abgeteilten Gruppe
   const GROUP_VEH = [[8, 10], [-8, 10], [0, 14], [15, 12]];
@@ -31,7 +32,7 @@
 
   FL.GroundBattle = class {
     constructor(cfg, lo) {
-      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.zoomable = true; this.zoomMin = 0.13; this.bodyTh = 0; this.role = cfg.role || 'commander';
+      this.cfg = cfg; this.lo = lo; this.result = null; this.kind = 'attack'; this.zoomable = true; this.zoomMin = 0.13; this.bodyTh = 0; this.pitch = 0; this.role = cfg.role || 'commander';
       this.tier = cfg.tier; this.diff = cfg.diff || 0.85;
       this.nSec = Math.max(1, cfg.sections || 2);
       this.armor = 1 + 0.35 * this.tier;
@@ -355,7 +356,7 @@
       this.hInfo = FL.el('div', '', '', this.hTR);
       this.map = FL.el('canvas', 'minimap', null, this.hTR); this.map.width = this.map.height = 170;
       this.hBC = FL.hud.box('hud-bc');
-      FL.hud.box('hud-bl').innerHTML = 'Mausklick ins Gelände: dorthin laufen · ← → drehen und zielen · Leertaste schießen · C anhalten · Mausrad Zoom · Q Befehl an den Trupp · R Trupp teilen (Flanke) · X Geschütze · 1 2 3 4 Unterstützung · 5 Verstärkung · 6 Kampfjets · P Pause';
+      FL.hud.box('hud-bl').innerHTML = 'Mausklick ins Gelände: dorthin laufen · ← → drehen und zielen · Leertaste schießen · C anhalten · Bild↑ Bild↓ hoch und runter schauen · Mausrad Zoom · Q Befehl an den Trupp · R Trupp teilen (Flanke) · X Geschütze · 1 2 3 4 Unterstützung · 5 Verstärkung · 6 Kampfjets · P Pause';
       this.hCover = FL.el('div', 'cover-note', 'IN DECKUNG', FL.hud.root);
       // Splitter von Explosionen sollen auf dem welligen Boden liegen, nicht darunter
       const sc = this.fx.scorch.bind(this.fx);
@@ -806,6 +807,10 @@
       // Steuerknüppel und Pfeiltasten drehen nur den Körper und damit die Waffe. Gelaufen wird zum angetippten Punkt.
       const turn = active ? FL.clamp((FL.down('ArrowLeft') ? 1 : 0) - (FL.down('ArrowRight') ? 1 : 0) - FL.stick.x, -1, 1) : 0;
       const sw = active ? FL.touch.swipe : 0; FL.touch.swipe = 0;
+      // Blick nach oben und unten: hoch oder runter wischen, Steuerknüppel vor und zurück, am Rechner Bild auf und Bild ab
+      const swY = active ? FL.touch.swipeY || 0 : 0; FL.touch.swipeY = 0;
+      const tilt = active ? FL.clamp((FL.down('PageUp') ? 1 : 0) - (FL.down('PageDown') ? 1 : 0) + FL.stick.y, -1, 1) : 0;
+      this.pitch = FL.clamp(this.pitch + tilt * 1.6 * dt - swY * 0.006, PITCH_DOWN, PITCH_UP);
       if (turn || sw) this.manualAim = true;
       h.th = wrap(h.th + turn * 2.5 * dt - sw * 0.007);
       let fwd = 0, side = 0, mvx = 0, mvz = 0;
@@ -1369,10 +1374,17 @@
       const s = Math.sin(this.camTh), c = Math.cos(this.camTh), sh = this.shake > 0 ? this.shake * 1.1 : 0;
       FL.touch.wheelZoom();
       const k = FL.touch.view(cam);                                 // Zoom: zwei Finger oder Mausrad. Weit herausgezoomt schaut die Kamera steiler von oben.
-      const cx = h.x - s * 8.6 * k, cz = h.z - c * 8.6 * k;
+      // Grundstellung: hinter und über dem Kommandanten, Blick leicht nach unten. Der freie Blick (this.pitch) schwenkt die Kamera
+      // um seinen Kopf: Wer in den Himmel schaut, geht mit der Kamera tief hinter ihn, wer nach unten schaut, steigt über ihn.
+      const back = 8.6 * k, up = 5.4 * k * (1 + 0.6 * smooth(1.5, 6, k)) - 1.6, R = Math.hypot(back, up);
+      const el = FL.clamp(Math.atan2(up, back) - this.pitch * 0.8, -0.25, 1.5);
+      const hr = Math.cos(el) * R, cx = h.x - s * hr, cz = h.z - c * hr;
       // die Kamera bleibt über dem Boden, auch wenn hinter dem Kommandanten ein Hügel liegt
-      cam.position.set(cx + FL.rand(-sh, sh), Math.max(this.camY + 5.4 * k * (1 + 0.6 * smooth(1.5, 6, k)), this.gy(cx, cz) + 2) + FL.rand(-sh, sh), cz);
-      cam.lookAt(h.x + s * 15, this.camY + 1.5, h.z + c * 15);
+      const cy = Math.max(this.camY + 1.6 + Math.sin(el) * R, this.gy(cx, cz) + (this.pitch > 0.3 ? 0.7 : 2));
+      cam.position.set(cx + FL.rand(-sh, sh), cy + FL.rand(-sh, sh), cz);
+      const l0 = -Math.atan2(up + 0.1, back + 15), q = this.pitch;      // auch weit herausgezoomt reicht der Blick bis ganz nach oben
+      const look = q > 0 ? l0 + (PITCH_UP - l0) * q / PITCH_UP : l0 + (PITCH_DOWN - l0) * q / PITCH_DOWN, lh = Math.cos(look) * 30;
+      cam.lookAt(cam.position.x + s * lh, cam.position.y + Math.sin(look) * 30, cam.position.z + c * lh);
       this.stage.update(new THREE.Vector3(h.x + s * 14, this.camY, h.z + c * 14));
     }
 
@@ -1472,11 +1484,11 @@
     // freier Bildschirm: kurzer Tipp = Laufziel, wischen = drehen
     const area = FL.el('div', 'tswipe', ''); L.insertBefore(area, L.firstChild);
     let sw = null;
-    area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, drag: false }; });
+    area.addEventListener('pointerdown', e => { if (!sw) sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, drag: false }; });
     area.addEventListener('pointermove', e => {
       if (!sw || e.pointerId !== sw.id) return;
-      if (!sw.drag && Math.hypot(e.clientX - sw.x0, e.clientY - sw.y0) > 26) { sw.drag = true; sw.x = e.clientX; }
-      if (sw.drag) { T.swipe += e.clientX - sw.x; sw.x = e.clientX; }
+      if (!sw.drag && Math.hypot(e.clientX - sw.x0, e.clientY - sw.y0) > 26) { sw.drag = true; sw.x = e.clientX; sw.y = e.clientY; }
+      if (sw.drag) { T.swipe += e.clientX - sw.x; sw.x = e.clientX; T.swipeY = (T.swipeY || 0) + e.clientY - sw.y; sw.y = e.clientY; }
     });
     area.addEventListener('pointerup', e => {
       if (!sw || e.pointerId !== sw.id) return;
@@ -1497,8 +1509,8 @@
       const d = Math.hypot(dx, dy);
       if (d > M) { dx *= M / d; dy *= M / d; }
       knob.style.transform = `translate(${dx}px,${dy}px)`;
-      const x = dx / M;
-      FL.stick.x = Math.abs(x) < 0.15 ? 0 : Math.sign(x) * (Math.abs(x) - 0.15) / 0.85; FL.stick.y = 0;
+      const dead = v => Math.abs(v) < 0.15 ? 0 : Math.sign(v) * (Math.abs(v) - 0.15) / 0.85;
+      FL.stick.x = dead(dx / M); FL.stick.y = dead(-dy / M);                 // seitlich drehen, vor und zurück hebt und senkt den Blick
     };
     const endS = e => { if (e.pointerId !== sid) return; sid = null; FL.stick.x = FL.stick.y = 0; knob.style.transform = ''; stick.classList.remove('on'); };
     stick.addEventListener('pointerdown', e => { if (sid !== null) return; e.preventDefault(); sid = e.pointerId; try { stick.setPointerCapture(sid); } catch (err) {} stick.classList.add('on'); setS(e); });
