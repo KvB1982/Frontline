@@ -102,7 +102,7 @@
     const glabel = () => { gfx.innerHTML = `Grafik: ${FL.save.gfx || 'auto'}<small>bei Ruckeln: „schnell“</small>`; };
     glabel();
     if (!FL.native) FL.el('div', 'hint', 'F11 schaltet auf Vollbild · P oder Esc pausiert im Spiel', m);
-    FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) und bohmerang (CC BY-NC-SA) · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
+    FL.el('div', 'credits', '3D-Modelle von Sketchfab: 42manako, SIpriv, Duane’s Mind, PolyDucky, Hdjusj (CC BY) · weitere Modelle mit 3D AI Studio erzeugt · <a href="lizenzen.html" target="_blank" rel="noopener">Quellen</a>', m);
     FL.onKey = code => { if (code === 'KeyM') label(); };
   };
 

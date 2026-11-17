@@ -247,7 +247,7 @@ Unter „Sondereinsätze“ gibt es den neuen Reiter „Hubschrauber“ mit vier
 
 ## Modelle
 
-Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sketchfab (SPz Puma, T-62, Humvee, Apache, Eurofighter und ein moderner Kampfjet). Dazu kommen Bäume, Palmen, Zelte, Radar und Wachtürme von Sketchfab. Beim ersten Start eines Einsatzes werden sie kurz geladen. Wer sie gebaut hat und unter welcher Lizenz sie stehen, steht in `LIZENZEN.md` und im Spiel unter „Quellen“ im Hauptmenü.
+Panzer, Geländewagen, Hubschrauber und Flugzeuge sind fertige 3D-Modelle von Sketchfab (SPz Puma, T-62, Humvee, Apache und ein moderner Kampfjet). Dazu kommen Bäume, Palmen, Zelte, Radar und Wachtürme von Sketchfab. Figuren, das eigene Flugzeug, Schiffe, Geschütze, Bunker und Hauptquartier wurden mit 3D AI Studio erzeugt. Beim ersten Start eines Einsatzes werden sie kurz geladen. Wer sie gebaut hat und unter welcher Lizenz sie stehen, steht in `LIZENZEN.md` und im Spiel unter „Quellen“ im Hauptmenü.
 
 ## Auf dem iPad spielen
 

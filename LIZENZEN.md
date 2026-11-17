@@ -16,11 +16,10 @@ Die Fahrzeuge und Flugzeuge stammen von Sketchfab. Für das Spiel wurden sie ver
 | Radar | [Low-Poly Radar Dish](https://sketchfab.com/3d-models/low-poly-radar-dish-ed6850e61792430581c8f9851fb7b4c5) | [joe_carrot](https://sketchfab.com/joe_carrot) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Zelte | [Military Tent](https://sketchfab.com/3d-models/military-tent-d0d6d9a9f5ab4939932dd27bbaa5ca7d) | [Khata](https://sketchfab.com/Khatagames) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
 | Wachtürme | [Game Ready Military Base Asset Pack](https://sketchfab.com/3d-models/game-ready-military-base-asset-pack-47c0a32b43bf42abbb743458fbd95114) | [Oxygen3D](https://sketchfab.com/oxygen3d) | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
-| Eigenes Flugzeug und Kampfbomber | [Eurofighter Typhoon - Fighter Jet - Free](https://sketchfab.com/3d-models/eurofighter-typhoon-fighter-jet-free-992bcc8987964ca09d55410330aa8579) | [bohmerang](https://sketchfab.com/bohmerang) | [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) |
 
-Der eigene Soldat (`models/soldat.js`) und der Geschützwagen (`models/spg.js`) wurden mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel aufbereitet.
+Mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel aufbereitet wurden: die Figuren (Kommandant, eigene Soldaten, Gegner, schwerer Gegner), Geschützwagen, Raketenwerfer, Lastwagen, das eigene Flugzeug mit Kampfbomber, die Drohne, beide Schiffe, Geschützturm, Flak, MG-Nest, Basisgeschütz, Bunker und Hauptquartier.
 
-Wichtig: Der Eurofighter darf nur nicht-kommerziell genutzt werden. Für das kostenlose Spiel ist das in Ordnung. Vor einer bezahlten Veröffentlichung (zum Beispiel im App Store) muss er gegen ein anderes Modell getauscht werden. Die verkleinerte Fassung in `models/jet.js` steht wie das Original unter CC BY-NC-SA 4.0.
+Das frühere Eurofighter-Modell (nur nicht-kommerziell nutzbar) ist nicht mehr im Spiel. Vor einer bezahlten Veröffentlichung sollten noch die Nutzungsbedingungen von 3D AI Studio für erzeugte Modelle geprüft werden.
 
 ## Geräusche
 
