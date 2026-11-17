@@ -80,7 +80,7 @@ Danach in Xcode wieder auf ▶. `npm run sync` kopiert die aktuellen Spieldateie
 
 ## Vor dem App Store
 
-- **Eurofighter ersetzen:** Das Modell des eigenen Jets steht unter CC BY-NC-SA und darf nicht kommerziell genutzt werden. Vor einer kostenpflichtigen Veröffentlichung muss ein anderes Modell hinein. Die übrigen Lizenzen stehen in [LIZENZEN.md](LIZENZEN.md).
+- **Modell-Lizenzen prüfen:** Der Eurofighter ist bereits durch ein eigenes Modell ersetzt. Vor einer kostenpflichtigen Veröffentlichung sollten noch die Nutzungsbedingungen von 3D AI Studio für die erzeugten Modelle geprüft werden. Die übrigen Lizenzen stehen in [LIZENZEN.md](LIZENZEN.md).
 - **App-Symbol:** Das Symbol ist aus dem kleinen Web-Symbol hochgerechnet und wirkt leicht unscharf. Für den Store sollte ein neues Bild mit 1024 × 1024 Pixeln hinein (`ios/App/App/Assets.xcassets/AppIcon.appiconset`).
 - **Version:** Für jedes Update in Xcode unter **General** die Felder „Version“ und „Build“ hochzählen.
 
