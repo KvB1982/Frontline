@@ -60,7 +60,19 @@
       o.material = mats.get(o.material); o.castShadow = true; o.receiveShadow = false;
     });
     const hold = new THREE.Group(); hold.add(scene);
-    if (d.raw) { for (const m of mats.values()) m.side = THREE.DoubleSide; X.tpl[name] = { hold, size: new THREE.Vector3(1, 1, 1), top: 1 }; return; }
+    if (d.raw) {
+      for (const m of mats.values()) m.side = THREE.DoubleSide;
+      const t = X.tpl[name] = { hold, size: new THREE.Vector3(1, 1, 1), top: 1 };
+      let skin = null; scene.traverse(o => { if (o.isSkinnedMesh && !skin) skin = o; });
+      if (skin) {
+        // Figur mit Skelett: Haut, Gelenke und ihre Lage in der Grundhaltung merken; jede Figur im Spiel bekommt eine eigene Kopie der Gelenke
+        const sk = skin.skeleton, at = {};
+        sk.bones.forEach((bn, i) => { at[bn.name] = new THREE.Vector3().setFromMatrixPosition(sk.boneInverses[i].clone().invert()); });
+        const leg = at.LeftUpLeg.distanceTo(at.LeftLeg) + at.LeftLeg.distanceTo(at.LeftFoot) + at.LeftFoot.y;
+        t.skin = { geo: skin.geometry, mat: skin.material, root: sk.bones[0], names: sk.bones.map(bn => bn.name), inv: sk.boneInverses, at, k: leg / 94.9 };
+      }
+      return;
+    }
     scene.rotation.y = d.yaw;
     hold.updateMatrixWorld(true);
     let box = new THREE.Box3().setFromObject(hold), size = box.getSize(new THREE.Vector3());
@@ -75,10 +87,18 @@
     box.setFromObject(hold); size = box.getSize(new THREE.Vector3());
     X.tpl[name] = { hold, size, top: box.max.y };
   };
+  // Bewegungen (models/bewegung.js): je Bild 22 Gelenke mal 4 Werte, als Zahlenfelder auspacken
+  const readAnim = () => {
+    const A = FL.ANIM; if (!A) return;
+    const i16 = t => new Int16Array(b64(t));
+    for (const c of Object.values(A.clips)) { c.q = i16(c.q); c.h = i16(c.h); }
+    X.anim = A;
+  };
   X.load = () => {
     if (X.promise) return X.promise;
     const names = Object.keys(DEF);
     const got = {};
+    script('models/bewegung.js').then(readAnim).catch(e => { console.warn('Bewegungen nicht geladen', e && e.message); });
     const one = name => { const f = DEF[name].file || name; return got[f] || (got[f] = script('models/' + f + '.js')); };
     const one2 = name => one(name).then(() => new Promise((ok, fail) => {
       const data = FL.GLB && FL.GLB[name];
@@ -183,26 +203,21 @@
     g.userData = { r: big ? 13 : 8, h: big ? 9 : 7, hp: big ? 30 : 16, kind: 'ship', gun, spin, len: L };
     return g;
   };
-  // Figuren: Jedes Modell ist in Rumpf, Arme und Beine zerlegt, bewegt wird es wie die einfachen Figuren (FL.animSoldier).
-  // gun = Platz der Waffe in den Händen, s = Größe
-  const FIG = {
-    soldat: { gun: [0.04, 1.14, 0.36], s: 1 },
-    held:   { gun: [0.04, 1.16, 0.38], s: 1.14 },
-    gegner: { gun: [0.04, 1.12, 0.36], s: 1 },
-    schwer: { gun: [0.05, 1.12, 0.46], s: 1.08 }
-  };
+  // Figuren: Jedes Modell hat ein Skelett mit 22 Gelenken. Bewegt wird es mit den Motion-Capture-Aufnahmen aus models/bewegung.js.
+  // s = Größe der Figur
+  const FIG = { soldat: { s: 1 }, held: { s: 1.14 }, gegner: { s: 1 }, schwer: { s: 1.08 } };
+  const ONE = new THREE.Matrix4();
   FL.soldier = o => {
     const kind = o.kind || 'soldat';
     const name = o.team === 'hero' ? 'held' : o.team === 'ally' ? 'soldat' : kind === 'schwer' ? 'schwer' : 'gegner';
-    const t = X.tpl[name], f = FIG[name];
-    if (!t) return oldSoldier(o);
-    const src = t.hold.clone(true), g = new THREE.Group(), body = new THREE.Group(), legs = [], arms = [];
-    const take = n => { const p = find(src, n); body.add(p); return p; };
-    g.add(body); take('rumpf');
-    for (const [n, sx] of [['R', -1], ['L', 1]]) {
-      legs.push(take('bein' + n));
-      const arm = take('arm' + n); arm.rotation.x = sx < 0 ? -1.0 : -1.25; arm.rotation.z = sx * -0.22; arms.push(arm);
-    }
+    const t = X.tpl[name], f = FIG[name], A = X.anim;
+    if (!t || !t.skin || !A) return oldSoldier(o);
+    const S = t.skin, g = new THREE.Group(), body = new THREE.Group(), root = S.root.clone(true), by = {};
+    root.traverse(bn => { by[bn.name] = bn; });
+    const bones = S.names.map(n => by[n]), mesh = new THREE.SkinnedMesh(S.geo, S.mat);
+    mesh.castShadow = true; mesh.frustumCulled = false;
+    body.add(root, mesh); mesh.bind(new THREE.Skeleton(bones, S.inv), ONE);
+    g.add(body);
     let scale = f.s;
     if (o.team === 'enemy') {
       // Rekrut heller und kleiner, Elite dunkler, Kommandant größer mit rotem Barett
@@ -210,16 +225,61 @@
       tint(body, kind === 'elite' || kind === 'schwer' ? th.enemyDark : th.enemy, kind === 'rekrut' ? 1.5 : kind === 'elite' ? 1.15 : 1.3);
       if (kind === 'rekrut') scale = 0.94;
       if (kind === 'elite') scale = 1.04;
-      if (kind === 'kommandant') { scale = 1.12; const b = FL.ball(0.17, FL.mat(0x8a2020), 0, 1.86, 0.02, 10, 6); b.scale.y = 0.45; body.add(b); }
+      if (kind === 'kommandant') { scale = 1.12; const b = FL.ball(0.17, FL.mat(0x8a2020), 0, 1.86 - S.at.Head.y, 0.02 - S.at.Head.z, 10, 6); b.scale.y = 0.45; by.Head.add(b); }
     }
-    const gun = new THREE.Group();
-    gun.position.set(f.gun[0], f.gun[1], f.gun[2]);
-    if (kind === 'raketen') { const tb = FL.cyl(0.09, 0.09, 1.3, 8, FL.mat(0x4e5a40), 0.22, 0.42, -0.2); tb.rotation.x = Math.PI / 2; gun.add(tb); }
-    else FL.WEAPON_LOOK[o.team === 'enemy' ? (kind === 'rekrut' ? 1 : 2) : (o.weapon || 0)](gun);
-    body.add(gun);
+    // Die Waffe liegt in der rechten Hand und zeigt zur linken
+    const gun = new THREE.Group(), cm = S.k * 1.05;
+    gun.quaternion.fromArray(A.gun.q); gun.position.set(A.gun.p[0] * cm, A.gun.p[1] * cm, A.gun.p[2] * cm);
+    if (kind === 'raketen') { const tb = FL.cyl(0.09, 0.09, 1.3, 8, FL.mat(0x4e5a40), 0, 0.12, 0.1); tb.rotation.x = Math.PI / 2; gun.add(tb); }
+    else { const look = new THREE.Group(); look.position.set(0, -0.04, -0.05); FL.WEAPON_LOOK[o.team === 'enemy' ? (kind === 'rekrut' ? 1 : 2) : (o.weapon || 0)](look); gun.add(look); }
+    by.RightHand.add(gun);
     if (scale !== 1) g.scale.setScalar(scale);
-    g.userData = { legs, arms, body, gun, phase: Math.random() * 6 };
+    g.userData = { legs: [], arms: [], body, gun, phase: Math.random() * 6, sk: { bones, hips: by.Hips, at: S.at.Hips, k: S.k, clip: null, time: Math.random() * 2, fade: 0, from: new Float32Array(bones.length * 4), fromH: new THREE.Vector3(), v: 0 } };
+    FL.animSoldier(g, 0, false, false);
     return g;
+  };
+  // Bewegung wählen und abspielen: stehen, gehen, rennen, geduckt gehen, knien. Beim Wechsel wird kurz überblendet.
+  const oldAnim = FL.animSoldier, WALKS = { geh: 1, renn: 1, tief: 1, sprint: 1 };
+  FL.animSoldier = (g, t, moving, crouch, low) => {
+    const u = g.userData, k = u.sk;
+    if (!k) return oldAnim(g, t, moving, crouch, low);
+    const A = X.anim, C = A.clips;
+    let dt = k.t0 === undefined ? 0 : t - k.t0; k.t0 = t;
+    if (dt < 0 || dt > 0.25) dt = 0.016;
+    // Tempo aus dem zurückgelegten Weg, damit die Schritte zur Geschwindigkeit passen
+    const p = g.position;
+    if (k.px !== undefined && dt > 0) { const v = Math.hypot(p.x - k.px, p.z - k.pz) / dt; k.v += (Math.min(v, 14) - k.v) * Math.min(1, dt * 8); }
+    k.px = p.x; k.pz = p.z;
+    const fast = k.v > (k.clip === 'renn' || k.clip === 'sprint' ? 3.0 : 3.8), veryFast = k.v > (k.clip === 'sprint' ? 6.2 : 7.2);
+    const want = crouch ? 'duck' : !moving ? 'steh' : veryFast ? 'sprint' : fast ? 'renn' : low ? 'tief' : 'geh';
+    if (want !== k.clip) {
+      if (k.clip) { for (let i = 0; i < k.bones.length; i++) k.bones[i].quaternion.toArray(k.from, i * 4); k.fromH.copy(k.hips.position); k.fade = 1; }
+      if (!(WALKS[want] && WALKS[k.clip])) k.time = WALKS[want] ? k.time : 0;
+      else k.time = k.time / C[k.clip].n * C[want].n;                    // im Schritt bleiben
+      k.clip = want;
+    }
+    const c = C[want], n = c.n;
+    const rate = c.v && k.v > 0.4 ? Math.min(1.9, Math.max(0.7, k.v / (c.v * g.scale.x))) : c.rate;
+    k.time = (k.time + dt * A.fps * rate) % n;
+    const i0 = Math.floor(k.time) % n, i1 = (i0 + 1) % n, f = k.time - Math.floor(k.time), nb = k.bones.length, q = c.q;
+    if (k.fade > 0) k.fade = Math.max(0, k.fade - dt / 0.2);
+    const w = k.fade * k.fade * (3 - 2 * k.fade), from = k.from;
+    for (let b = 0; b < nb; b++) {
+      const a = (i0 * nb + b) * 4, e = (i1 * nb + b) * 4;
+      let x = q[a], y = q[a + 1], z = q[a + 2], s = q[a + 3];
+      const sg = x * q[e] + y * q[e + 1] + z * q[e + 2] + s * q[e + 3] < 0 ? -f : f;
+      x += (q[e] * (sg < 0 ? -1 : 1) - x) * f; y += (q[e + 1] * (sg < 0 ? -1 : 1) - y) * f; z += (q[e + 2] * (sg < 0 ? -1 : 1) - z) * f; s += (q[e + 3] * (sg < 0 ? -1 : 1) - s) * f;
+      let l = 1 / Math.hypot(x, y, z, s); x *= l; y *= l; z *= l; s *= l;
+      if (w > 0) {
+        const o = b * 4, d = from[o] * x + from[o + 1] * y + from[o + 2] * z + from[o + 3] * s < 0 ? -1 : 1;
+        x += (from[o] * d - x) * w; y += (from[o + 1] * d - y) * w; z += (from[o + 2] * d - z) * w; s += (from[o + 3] * d - s) * w;
+        l = 1 / Math.hypot(x, y, z, s); x *= l; y *= l; z *= l; s *= l;
+      }
+      k.bones[b].quaternion.set(x, y, z, s);
+    }
+    const h = c.h, cm = k.k / 50, a = i0 * 3, e = i1 * 3, hp = k.hips.position;
+    hp.set(k.at.x + (h[a] + (h[e] - h[a]) * f) * cm, k.at.y + (h[a + 1] + (h[e + 1] - h[a + 1]) * f) * cm, k.at.z + (h[a + 2] + (h[e + 2] - h[a + 2]) * f) * cm);
+    if (w > 0) hp.lerp(k.fromH, w);
   };
   // Bäume: im Bodenkampf und beim Panzer die Sketchfab-Bäume, aus dem Flugzeug (simple) die einfachen, weil dort sehr viele stehen
   const TREES = { pine: ['tree1', 'tree9'], leaf: ['tree4', 'tree6'], palm: ['palm'], deadtree: ['tree11'] };

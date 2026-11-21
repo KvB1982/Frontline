@@ -21,6 +21,12 @@ Mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel aufber
 
 Das frühere Eurofighter-Modell (nur nicht-kommerziell nutzbar) ist nicht mehr im Spiel. Vor einer bezahlten Veröffentlichung sollten noch die Nutzungsbedingungen von 3D AI Studio für erzeugte Modelle geprüft werden.
 
+## Bewegungen der Figuren
+
+Stehen, Gehen, Rennen, geducktes Gehen und Knien der Soldaten sind Motion-Capture-Aufnahmen von [Mixamo](https://www.mixamo.com) (Adobe): „Walk With Rifle“, „Rifle Start Run“, „Sneak Walk“, „Sprint“ und „Standing“. Laut den [Mixamo-Bedingungen von Adobe](https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html) dürfen die Bewegungen kostenlos und ohne Namensnennung in eigenen Projekten verwendet werden, auch in bezahlten Spielen. Nicht erlaubt ist, die Mixamo-Dateien selbst weiterzugeben. Deshalb liegen hier nur die für unsere Figuren umgerechneten Bewegungsdaten (`models/bewegung.js`), nicht die heruntergeladenen Dateien.
+
+Die Figuren haben dafür ein Skelett mit 22 Gelenken bekommen.
+
 ## Geräusche
 
 Triebwerk, Nachbrenner, Panzermotor, Schüsse, Raketen und Explosionen sind Aufnahmen von Pixabay (Pixabay-Inhaltslizenz: frei nutzbar, auch ohne Namensnennung). Sie wurden gekürzt und zu Schleifen geschnitten und stecken in `sounds/pack.js`.
