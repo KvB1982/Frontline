@@ -12,6 +12,17 @@ TEAM="AX2SZQVU9L"
 WORK="$HOME/Library/Caches/frontlinie3-testflight"
 SRC="$WORK/src"
 DONE="$WORK/hochgeladen.txt"          # letzter hochgeladener Commit
+# Anmeldung bei Apple: mit dem App-Store-Connect-API-Schlüssel, wenn ~/.appstoreconnect/frontlinie.env vorhanden ist
+# (ASC_KEY_ID und ASC_ISSUER_ID, dazu private_keys/AuthKey_<ASC_KEY_ID>.p8). Sonst mit dem in Xcode angemeldeten Konto.
+# Der Schlüssel liegt nur auf dem Mac, nie im Repo.
+ASC="$HOME/.appstoreconnect"
+AUTH=()
+if [ -f "$ASC/frontlinie.env" ]; then
+  source "$ASC/frontlinie.env"
+  KEYFILE="$ASC/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+  [ -f "$KEYFILE" ] || { echo "API-Schlüsseldatei fehlt: private_keys/AuthKey_<ASC_KEY_ID>.p8"; exit 1; }
+  AUTH=(-authenticationKeyPath "$KEYFILE" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+fi
 mkdir -p "$WORK"
 
 # nie zweimal gleichzeitig
@@ -30,7 +41,7 @@ git clean -qfd -e node_modules
 HEAD_SHA="$(git rev-parse HEAD)"
 if [ -f "$DONE" ] && [ "$(cat "$DONE")" = "$HEAD_SHA" ]; then echo "nichts Neues ($HEAD_SHA)"; exit 0; fi
 BUILD="$(git rev-list --count HEAD)"
-echo "$(date '+%d.%m.%Y %H:%M') Build $BUILD aus $HEAD_SHA"
+echo "$(date '+%d.%m.%Y %H:%M') Build $BUILD aus $HEAD_SHA ($([ ${#AUTH[@]} -gt 0 ] && echo 'Anmeldung mit API-Schlüssel' || echo 'Anmeldung über Xcode-Konto'))"
 
 npm ci --silent
 node scripts/copy-web.mjs
@@ -52,10 +63,10 @@ PLIST
 
 rm -rf "$WORK/App.xcarchive" "$WORK/export"
 xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' \
-  -archivePath "$WORK/App.xcarchive" -allowProvisioningUpdates CURRENT_PROJECT_VERSION="$BUILD" archive > "$WORK/archive.log" 2>&1 \
+  -archivePath "$WORK/App.xcarchive" -allowProvisioningUpdates "${AUTH[@]}" CURRENT_PROJECT_VERSION="$BUILD" archive > "$WORK/archive.log" 2>&1 \
   || { echo "Archiv fehlgeschlagen, siehe $WORK/archive.log"; exit 1; }
 xcodebuild -exportArchive -archivePath "$WORK/App.xcarchive" -exportOptionsPlist "$WORK/export.plist" \
-  -exportPath "$WORK/export" -allowProvisioningUpdates > "$WORK/export.log" 2>&1 \
+  -exportPath "$WORK/export" -allowProvisioningUpdates "${AUTH[@]}" > "$WORK/export.log" 2>&1 \
   || { echo "Upload fehlgeschlagen, siehe $WORK/export.log"; exit 1; }
 grep -q "Upload succeeded" "$WORK/export.log" || { echo "Upload nicht bestätigt, siehe $WORK/export.log"; exit 1; }
 
